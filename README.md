@@ -73,13 +73,13 @@ Please contact pathwyse@supsi.ch for further inquiries.
 
 
 ##### PathWyse Community (Open Source)
-Version 0.1 - May 2024 - GitHub Repository
+Version 0.1 - June 2024 - GitHub Repository
 
 ##### PathWyse Enterprise (binaries free-to-use for academic projects)
-Version 1.0 - May 2024 - binaries, upon request (pathwyse@supsi.ch)
+Version 1.0 - June 2024 - binaries, upon request (pathwyse@supsi.ch)
 
 ##### PathWyse Enterprise (closed source, for non-open source projects)
-Version 1.0 - May 2024 - upon request (pathwyse@supsi.ch)
+Version 1.0 - June 2024 - upon request (pathwyse@supsi.ch)
 
 
 ## How to cite
