@@ -88,15 +88,3 @@ void Graph::setArc(int i, int j) {
     forward_neighbors[i].push_back(j);
     backward_neighbors[j].push_back(i);
 }
-
-bool Graph::areNeighbors(int i, int j, bool direction) {
-    if(i == j)
-        return false;
-    if(complete)
-        return true;
-
-    if(not direction)
-        std::swap(i,j);
-
-    return compress_data ? arcs_map[i].count(j) : arcs[i].get(j);
-}

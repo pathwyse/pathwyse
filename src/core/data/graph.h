@@ -38,7 +38,17 @@ public:
     void setArc(int i, int j);
 
     //Neighbors management
-    bool areNeighbors(int i, int j, bool direction);
+    bool areNeighbors(int i, int j, bool direction) {
+        if(i == j)
+            return false;
+        if(complete)
+            return true;
+
+        if(not direction)
+            std::swap(i,j);
+
+        return compress_data ? arcs_map[i].count(j) : arcs[i].get(j);
+    }
     std::vector<int> & getNeighbors(int node, bool direction) {return direction ? forward_neighbors[node] : backward_neighbors[node];}
 
     /** Active nodes management **/

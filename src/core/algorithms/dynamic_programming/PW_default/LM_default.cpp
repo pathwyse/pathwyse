@@ -98,7 +98,7 @@ void LMDefault::readConfiguration() {
     if(autoconfiguration) {
         //Simple auto-tune of some parameters
         bool active = false;
-        int candidate_type = CANDIDATE_RR;
+        candidate_type = CANDIDATE_RR;
 
         if(problem->isGraphCyclic()){
             active = true;
