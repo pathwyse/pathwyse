@@ -262,6 +262,7 @@ void Dijkstra::managePaths() {
 
     int objective = std::get<0>(solution_data);
     Label* fw = std::get<1>(solution_data);
+    if(fw) fw = fw->getPredecessor(); //Removes duplicate node when performing node join
     Label* bw = std::get<2>(solution_data);
     buildPath(objective, fw, bw);
 
