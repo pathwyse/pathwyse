@@ -260,10 +260,18 @@ void Dijkstra::checkOptimality(){
 //Builds a path
 void Dijkstra::managePaths() {
 
-    int objective = std::get<0>(solution_data);
-    Label* fw = std::get<1>(solution_data);
-    if(fw) fw = fw->getPredecessor(); //Removes duplicate node when performing node join
-    Label* bw = std::get<2>(solution_data);
+    auto [objective, l1, l2] = solution_data;
+    Label* fw = nullptr;
+    Label* bw = nullptr;
+
+    if(l1 and l2 and l1->getNode() == l2->getNode())
+        l1 = l1->getPredecessor(); //Removes duplicate node when performing node join
+
+    if (l1 or l2) {
+        fw = (l1 and l1->getDirection()) or (l2 and not l2->getDirection()) ? l1 : l2;
+        bw = (l1 and l1->getDirection()) or (l2 and not l2->getDirection()) ? l2 : l1;
+    }
+
     buildPath(objective, fw, bw);
 
     auto bestPath = getBestSolution();
@@ -271,9 +279,9 @@ void Dijkstra::managePaths() {
         return;
 
     bestPath->setStatus(PATH_OPTIMAL);
-
     std::list<Label> tourFW = buildTour(bestPath->getTour(), true);
     bestPath->setConsumption(tourFW.back().getSnapshot());
+
 }
 
 //Builds a tour

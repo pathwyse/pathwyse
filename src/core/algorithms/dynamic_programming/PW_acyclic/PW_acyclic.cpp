@@ -116,11 +116,14 @@ void PWAcyclic::extend(Label* candidate) {
 //Builds a path from two labelss
 void PWAcyclic::managePaths(){
 
-    auto solution_data = *label_manager->getJoin();
+    auto [objective, l1, l2] = *label_manager->getJoin();
 
-    int objective = std::get<0>(solution_data);
-    auto fw = &std::get<1>(solution_data);
-    auto bw = &std::get<2>(solution_data);
+    auto fw = l1.getDirection() ? &l1 : &l2;
+    auto bw = l1.getDirection() ? &l2 : &l1;
+
+    if(fw and bw and fw->getNode() == bw->getNode())
+        fw = fw->getPredecessor(); //Removes duplicate node when performing node join
+
     buildPath(objective, fw, bw);
 
     auto bestPath = getBestSolution();
@@ -132,6 +135,7 @@ void PWAcyclic::managePaths(){
 
     std::list<Label> tourFW = label_manager->buildTour(bestPath->getTour(), true);
     bestPath->setConsumption(tourFW.back().getSnapshot());
+
 }
 
 //Reset
