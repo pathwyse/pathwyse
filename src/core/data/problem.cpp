@@ -346,6 +346,22 @@ void Problem::readSparseProblem(std::string file_name) {
                 readNextLine(f, line, tokens, key);
             }
         }
+        else if (key == "COORD") {
+            //For each node i, read coordinates (x,y)
+            readNextLine(f, line, tokens, key);
+            network.initCoord();
+            int xval, yval;
+
+            while (key != "END") {
+                i = std::stoi(tokens[0]);
+                xval = std::stoi(tokens[1]);
+                yval = std::stoi(tokens[2]);
+                network.setxy(i, xval, yval);
+                if(use_depot and i == origin)
+                    network.setxy(destination, xval, yval);
+                readNextLine(f, line, tokens, key);
+            }
+        }
     }
     f.close();
 
@@ -561,6 +577,8 @@ void Problem::readProblem(std::string file_name) {
                 xval = std::stoi(tokens[1]);
                 yval = std::stoi(tokens[2]);
                 network.setxy(i, xval, yval);
+                if(use_depot and i == origin)
+                    network.setxy(destination, xval, yval);
                 readNextLine(f, line, tokens, key);
             }
         }
