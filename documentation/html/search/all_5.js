@@ -23,6 +23,7 @@ var searchData=
   ['executionid_20',['executionID',['../dd/da9/classAlgorithm.html#a92bd509ef63d18d579c706476421168d',1,'Algorithm::executionID'],['../dc/d4f/classLMacyclic.html#a3e75f86a18274fb257c96939ceeceab8',1,'LMacyclic::executionID'],['../d8/d35/classLMDefault.html#abddbb4657a296e2ff2e9b7aa314b3186',1,'LMDefault::executionID']]],
   ['extend_21',['extend',['../d4/d57/classPWAcyclic.html#a322fe596c3347ab5388f44bfc307d673',1,'PWAcyclic::extend()'],['../df/d33/classPWDefault.html#a8b557722cb91a7b81edf433f97906593',1,'PWDefault::extend()'],['../d6/dbe/classCapacity.html#a38b58dc54bb80b6425d926ef8d1f44b0',1,'Capacity::extend()'],['../dc/ddc/classDefaultCost.html#acf22b796a023d51927f21425370bc6cc',1,'DefaultCost::extend()'],['../df/dcc/classNodeLim.html#a82eb9df98426623c9fa844850d2c26ac',1,'NodeLim::extend()'],['../da/dcd/classResource.html#a66a8dcb3fc9ec029f8fafc488e958fcc',1,'Resource::extend()'],['../da/d66/classTime.html#a784947093b483511a63827b2edcbc824',1,'Time::extend()'],['../d0/d4d/classTimeWindow.html#a69ecb0e3e6ea6645bd4a0de053e5c793',1,'TimeWindow::extend()']]],
   ['extendlabel_22',['extendLabel',['../dc/d4f/classLMacyclic.html#a65086243ed2c68a068d876bc216feb77',1,'LMacyclic::extendLabel()'],['../d8/d35/classLMDefault.html#af8dde86f28ba6051df75ab0dc386cd51',1,'LMDefault::extendLabel()'],['../d4/d0d/classDijkstra.html#a73da045b58c1d7ce30b7232101c3000e',1,'Dijkstra::extendLabel()']]],
-  ['extras_23',['Extras',['../d8/da8/md_tutorials_2EXTRAS.html',1,'']]],
-  ['extras_2emd_24',['EXTRAS.md',['../df/d20/EXTRAS_8md.html',1,'']]]
+  ['extension_5ftarget_23',['extension_target',['../df/d38/classLabelAdv.html#a44054b2814340aefd905dc5566c8cd61',1,'LabelAdv']]],
+  ['extras_24',['Extras',['../d8/da8/md_tutorials_2EXTRAS.html',1,'']]],
+  ['extras_2emd_25',['EXTRAS.md',['../df/d20/EXTRAS_8md.html',1,'']]]
 ];

@@ -121,6 +121,8 @@ Public Member Functions</h2></td></tr>
 <tr class="separator:ade3b7acc4fc6d9164bd68a37d8fa3e2f"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ac6f10e7255474a09c0a68df2707ad15d" id="r_ac6f10e7255474a09c0a68df2707ad15d"><td class="memItemLeft" align="right" valign="top"><a class="el" href="../../d3/d1b/classLabel.html">Label</a> *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#ac6f10e7255474a09c0a68df2707ad15d">getPredecessor</a> ()</td></tr>
 <tr class="separator:ac6f10e7255474a09c0a68df2707ad15d"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ad7227f9288a356b69385a8daa5415f04" id="r_ad7227f9288a356b69385a8daa5415f04"><td class="memItemLeft" align="right" valign="top">int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#ad7227f9288a356b69385a8daa5415f04">getPredecessorNode</a> ()</td></tr>
+<tr class="separator:ad7227f9288a356b69385a8daa5415f04"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a09c93d37e144aa67d5064ac5de9fd404" id="r_a09c93d37e144aa67d5064ac5de9fd404"><td class="memItemLeft" align="right" valign="top">bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a09c93d37e144aa67d5064ac5de9fd404">isValid</a> ()</td></tr>
 <tr class="separator:a09c93d37e144aa67d5064ac5de9fd404"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ad91660b2e90435f70073fce037e2dec9" id="r_ad91660b2e90435f70073fce037e2dec9"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#ad91660b2e90435f70073fce037e2dec9">operator=</a> (const <a class="el" href="../../d3/d1b/classLabel.html">Label</a> &amp;obj)</td></tr>
@@ -177,7 +179,7 @@ Protected Attributes</h2></td></tr>
 
 <p class="definition">Definition at line <a class="el" href="../../d7/d4c/label_8h_source.html#l00013">13</a> of file <a class="el" href="../../d7/d4c/label_8h_source.html">label.h</a>.</p>
 <div class="fragment"><div class="line"><span class="lineno">   13</span>{<a class="code hl_variable" href="#a702f97f5ff180cec50c693ab214261a4">objective</a> = <a class="code hl_define" href="../../d2/d6f/constants_8h.html#ac1ae4add974b9cfc6b5aaf8a578f01ab">UNKNOWN</a>;}</div>
-<div class="ttc" id="aclassLabel_html_a702f97f5ff180cec50c693ab214261a4"><div class="ttname"><a href="#a702f97f5ff180cec50c693ab214261a4">Label::objective</a></div><div class="ttdeci">int objective</div><div class="ttdef"><b>Definition</b> <a href="../../d7/d4c/label_8h_source.html#l00053">label.h:53</a></div></div>
+<div class="ttc" id="aclassLabel_html_a702f97f5ff180cec50c693ab214261a4"><div class="ttname"><a href="#a702f97f5ff180cec50c693ab214261a4">Label::objective</a></div><div class="ttdeci">int objective</div><div class="ttdef"><b>Definition</b> <a href="../../d7/d4c/label_8h_source.html#l00055">label.h:55</a></div></div>
 <div class="ttc" id="aconstants_8h_html_ac1ae4add974b9cfc6b5aaf8a578f01ab"><div class="ttname"><a href="../../d2/d6f/constants_8h.html#ac1ae4add974b9cfc6b5aaf8a578f01ab">UNKNOWN</a></div><div class="ttdeci">#define UNKNOWN</div><div class="ttdef"><b>Definition</b> <a href="../../d2/d6f/constants_8h_source.html#l00036">constants.h:36</a></div></div>
 </div><!-- fragment -->
 </div>
@@ -206,10 +208,10 @@ Protected Attributes</h2></td></tr>
 <div class="line"><span class="lineno">    9</span>    <a class="code hl_variable" href="#a702f97f5ff180cec50c693ab214261a4">objective</a> = obj.<a class="code hl_variable" href="#a702f97f5ff180cec50c693ab214261a4">objective</a>;</div>
 <div class="line"><span class="lineno">   10</span>    <a class="code hl_variable" href="#a83d053352d0eed5c7ad906c3e5395b45">snapshot</a> = obj.<a class="code hl_variable" href="#a83d053352d0eed5c7ad906c3e5395b45">snapshot</a>;</div>
 <div class="line"><span class="lineno">   11</span>}</div>
-<div class="ttc" id="aclassLabel_html_a01548631a66b8cce758a58cf908569a1"><div class="ttname"><a href="#a01548631a66b8cce758a58cf908569a1">Label::direction</a></div><div class="ttdeci">bool direction</div><div class="ttdef"><b>Definition</b> <a href="../../d7/d4c/label_8h_source.html#l00049">label.h:49</a></div></div>
-<div class="ttc" id="aclassLabel_html_a0e989e692182fea3b94588f3b711956e"><div class="ttname"><a href="#a0e989e692182fea3b94588f3b711956e">Label::node</a></div><div class="ttdeci">int node</div><div class="ttdef"><b>Definition</b> <a href="../../d7/d4c/label_8h_source.html#l00048">label.h:48</a></div></div>
-<div class="ttc" id="aclassLabel_html_a83d053352d0eed5c7ad906c3e5395b45"><div class="ttname"><a href="#a83d053352d0eed5c7ad906c3e5395b45">Label::snapshot</a></div><div class="ttdeci">std::vector&lt; int &gt; snapshot</div><div class="ttdef"><b>Definition</b> <a href="../../d7/d4c/label_8h_source.html#l00054">label.h:54</a></div></div>
-<div class="ttc" id="aclassLabel_html_a98868aa355cebb6e346ef096a4d28faa"><div class="ttname"><a href="#a98868aa355cebb6e346ef096a4d28faa">Label::predecessor</a></div><div class="ttdeci">Label * predecessor</div><div class="ttdef"><b>Definition</b> <a href="../../d7/d4c/label_8h_source.html#l00050">label.h:50</a></div></div>
+<div class="ttc" id="aclassLabel_html_a01548631a66b8cce758a58cf908569a1"><div class="ttname"><a href="#a01548631a66b8cce758a58cf908569a1">Label::direction</a></div><div class="ttdeci">bool direction</div><div class="ttdef"><b>Definition</b> <a href="../../d7/d4c/label_8h_source.html#l00051">label.h:51</a></div></div>
+<div class="ttc" id="aclassLabel_html_a0e989e692182fea3b94588f3b711956e"><div class="ttname"><a href="#a0e989e692182fea3b94588f3b711956e">Label::node</a></div><div class="ttdeci">int node</div><div class="ttdef"><b>Definition</b> <a href="../../d7/d4c/label_8h_source.html#l00050">label.h:50</a></div></div>
+<div class="ttc" id="aclassLabel_html_a83d053352d0eed5c7ad906c3e5395b45"><div class="ttname"><a href="#a83d053352d0eed5c7ad906c3e5395b45">Label::snapshot</a></div><div class="ttdeci">std::vector&lt; int &gt; snapshot</div><div class="ttdef"><b>Definition</b> <a href="../../d7/d4c/label_8h_source.html#l00056">label.h:56</a></div></div>
+<div class="ttc" id="aclassLabel_html_a98868aa355cebb6e346ef096a4d28faa"><div class="ttname"><a href="#a98868aa355cebb6e346ef096a4d28faa">Label::predecessor</a></div><div class="ttdeci">Label * predecessor</div><div class="ttdef"><b>Definition</b> <a href="../../d7/d4c/label_8h_source.html#l00052">label.h:52</a></div></div>
 </div><!-- fragment -->
 </div>
 </div>
@@ -276,7 +278,7 @@ Protected Attributes</h2></td></tr>
 <div class="line"><span class="lineno">   18</span>    this-&gt;<a class="code hl_variable" href="#a83d053352d0eed5c7ad906c3e5395b45">snapshot</a>.resize(n_res, 0);</div>
 <div class="line"><span class="lineno">   19</span>}</div>
 </div><!-- fragment -->
-<p class="reference">Referenced by <a class="el" href="../../d5/dd2/LM__acyclic_8cpp_source.html#l00116">LMacyclic::buildTour()</a>, <a class="el" href="../../df/dd4/LM__default_8cpp_source.html#l00730">LMDefault::buildTour()</a>, <a class="el" href="../../d8/d68/dijkstra_8cpp_source.html#l00288">Dijkstra::buildTour()</a>, <a class="el" href="../../d5/dd2/LM__acyclic_8cpp_source.html#l00016">LMacyclic::initLM()</a>, <a class="el" href="../../df/dd4/LM__default_8cpp_source.html#l00025">LMDefault::initLM()</a>, and <a class="el" href="../../d8/d68/dijkstra_8cpp_source.html#l00033">Dijkstra::solve()</a>.</p>
+<p class="reference">Referenced by <a class="el" href="../../d5/dd2/LM__acyclic_8cpp_source.html#l00116">LMacyclic::buildTour()</a>, <a class="el" href="../../df/dd4/LM__default_8cpp_source.html#l00778">LMDefault::buildTour()</a>, <a class="el" href="../../d8/d68/dijkstra_8cpp_source.html#l00288">Dijkstra::buildTour()</a>, <a class="el" href="../../d5/dd2/LM__acyclic_8cpp_source.html#l00016">LMacyclic::initLM()</a>, <a class="el" href="../../df/dd4/LM__default_8cpp_source.html#l00025">LMDefault::initLM()</a>, and <a class="el" href="../../d8/d68/dijkstra_8cpp_source.html#l00033">Dijkstra::solve()</a>.</p>
 
 </div>
 </div>
@@ -305,7 +307,7 @@ Protected Attributes</h2></td></tr>
 <div class="line"><span class="lineno">   23</span>    this-&gt;predecessor = <a class="code hl_variable" href="#a98868aa355cebb6e346ef096a4d28faa">predecessor</a>;</div>
 <div class="line"><span class="lineno">   24</span>}</div>
 </div><!-- fragment -->
-<p class="reference">Referenced by <a class="el" href="../../d5/dd2/LM__acyclic_8cpp_source.html#l00186">LMacyclic::extendLabel()</a>, <a class="el" href="../../d8/d68/dijkstra_8cpp_source.html#l00139">Dijkstra::extendLabel()</a>, <a class="el" href="../../d8/d68/dijkstra_8cpp_source.html#l00033">Dijkstra::solve()</a>, and <a class="el" href="../../de/d23/label__advanced_8cpp_source.html#l00019">LabelAdv::updateLabel()</a>.</p>
+<p class="reference">Referenced by <a class="el" href="../../d5/dd2/LM__acyclic_8cpp_source.html#l00186">LMacyclic::extendLabel()</a>, <a class="el" href="../../d8/d68/dijkstra_8cpp_source.html#l00139">Dijkstra::extendLabel()</a>, <a class="el" href="../../d8/d68/dijkstra_8cpp_source.html#l00033">Dijkstra::solve()</a>, and <a class="el" href="../../de/d23/label__advanced_8cpp_source.html#l00021">LabelAdv::updateLabel()</a>.</p>
 
 </div>
 </div>
@@ -335,7 +337,7 @@ Protected Attributes</h2></td></tr>
 <p class="definition">Definition at line <a class="el" href="../../d7/d4c/label_8h_source.html#l00023">23</a> of file <a class="el" href="../../d7/d4c/label_8h_source.html">label.h</a>.</p>
 <div class="fragment"><div class="line"><span class="lineno">   23</span>{<span class="keywordflow">return</span> <a class="code hl_variable" href="#a702f97f5ff180cec50c693ab214261a4">objective</a>;}</div>
 </div><!-- fragment -->
-<p class="reference">Referenced by <a class="el" href="../../d8/d68/dijkstra_8cpp_source.html#l00222">Dijkstra::checkFeasibility()</a>, <a class="el" href="../../df/dd4/LM__default_8cpp_source.html#l00573">LMDefault::classicJoin()</a>, <a class="el" href="../../df/dd4/LM__default_8cpp_source.html#l00480">LMDefault::dominates()</a>, <a class="el" href="../../d5/dd2/LM__acyclic_8cpp_source.html#l00271">LMacyclic::earlyUpdate()</a>, <a class="el" href="../../d5/dd2/LM__acyclic_8cpp_source.html#l00186">LMacyclic::extendLabel()</a>, <a class="el" href="../../d8/d68/dijkstra_8cpp_source.html#l00139">Dijkstra::extendLabel()</a>, <a class="el" href="../../df/dd4/LM__default_8cpp_source.html#l00335">LMDefault::extendLabel()</a>, <a class="el" href="../../df/dd4/LM__default_8cpp_source.html#l00758">LMDefault::findLabels()</a>, <a class="el" href="../../da/d0b/dijkstra_8h_source.html#l00037">Dijkstra::getDistance()</a>, <a class="el" href="../../df/dd4/LM__default_8cpp_source.html#l00689">LMDefault::getSolutionLabels()</a>, <a class="el" href="../../d1/d72/preprocessing_8cpp_source.html#l00093">Preprocessing::getSplit()</a>, <a class="el" href="../../d5/dd2/LM__acyclic_8cpp_source.html#l00016">LMacyclic::initLM()</a>, <a class="el" href="../../d5/dd2/LM__acyclic_8cpp_source.html#l00209">LMacyclic::insert()</a>, <a class="el" href="../../df/dd4/LM__default_8cpp_source.html#l00374">LMDefault::insert()</a>, <a class="el" href="../../d5/dd2/LM__acyclic_8cpp_source.html#l00304">LMacyclic::join()</a>, <a class="el" href="../../d8/d68/dijkstra_8cpp_source.html#l00176">Dijkstra::joinCompletion()</a>, <a class="el" href="../../d8/d68/dijkstra_8cpp_source.html#l00193">Dijkstra::joinLabels()</a>, <a class="el" href="../../df/dd4/LM__default_8cpp_source.html#l00546">LMDefault::naiveJoin()</a>, <a class="el" href="../../df/dd4/LM__default_8cpp_source.html#l00608">LMDefault::orderedJoin()</a>, and <a class="el" href="../../d8/d68/dijkstra_8cpp_source.html#l00033">Dijkstra::solve()</a>.</p>
+<p class="reference">Referenced by <a class="el" href="../../d8/d68/dijkstra_8cpp_source.html#l00222">Dijkstra::checkFeasibility()</a>, <a class="el" href="../../df/dd4/LM__default_8cpp_source.html#l00616">LMDefault::classicJoin()</a>, <a class="el" href="../../df/dd4/LM__default_8cpp_source.html#l00488">LMDefault::dominates()</a>, <a class="el" href="../../d5/dd2/LM__acyclic_8cpp_source.html#l00271">LMacyclic::earlyUpdate()</a>, <a class="el" href="../../d5/dd2/LM__acyclic_8cpp_source.html#l00186">LMacyclic::extendLabel()</a>, <a class="el" href="../../d8/d68/dijkstra_8cpp_source.html#l00139">Dijkstra::extendLabel()</a>, <a class="el" href="../../df/dd4/LM__default_8cpp_source.html#l00335">LMDefault::extendLabel()</a>, <a class="el" href="../../df/dd4/LM__default_8cpp_source.html#l00806">LMDefault::findLabels()</a>, <a class="el" href="../../da/d0b/dijkstra_8h_source.html#l00037">Dijkstra::getDistance()</a>, <a class="el" href="../../df/dd4/LM__default_8cpp_source.html#l00737">LMDefault::getSolutionLabels()</a>, <a class="el" href="../../d1/d72/preprocessing_8cpp_source.html#l00093">Preprocessing::getSplit()</a>, <a class="el" href="../../d5/dd2/LM__acyclic_8cpp_source.html#l00016">LMacyclic::initLM()</a>, <a class="el" href="../../d5/dd2/LM__acyclic_8cpp_source.html#l00209">LMacyclic::insert()</a>, <a class="el" href="../../df/dd4/LM__default_8cpp_source.html#l00381">LMDefault::insert()</a>, <a class="el" href="../../d5/dd2/LM__acyclic_8cpp_source.html#l00304">LMacyclic::join()</a>, <a class="el" href="../../d8/d68/dijkstra_8cpp_source.html#l00176">Dijkstra::joinCompletion()</a>, <a class="el" href="../../d8/d68/dijkstra_8cpp_source.html#l00193">Dijkstra::joinLabels()</a>, <a class="el" href="../../df/dd4/LM__default_8cpp_source.html#l00589">LMDefault::naiveJoin()</a>, <a class="el" href="../../df/dd4/LM__default_8cpp_source.html#l00651">LMDefault::orderedJoin()</a>, and <a class="el" href="../../d8/d68/dijkstra_8cpp_source.html#l00033">Dijkstra::solve()</a>.</p>
 
 </div>
 </div>
@@ -365,7 +367,7 @@ Protected Attributes</h2></td></tr>
 <p class="definition">Definition at line <a class="el" href="../../d7/d4c/label_8h_source.html#l00024">24</a> of file <a class="el" href="../../d7/d4c/label_8h_source.html">label.h</a>.</p>
 <div class="fragment"><div class="line"><span class="lineno">   24</span>{this-&gt;<a class="code hl_variable" href="#a702f97f5ff180cec50c693ab214261a4">objective</a> = <a class="code hl_variable" href="#a702f97f5ff180cec50c693ab214261a4">objective</a>;}</div>
 </div><!-- fragment -->
-<p class="reference">Referenced by <a class="el" href="../../d5/dd2/LM__acyclic_8cpp_source.html#l00116">LMacyclic::buildTour()</a>, <a class="el" href="../../df/dd4/LM__default_8cpp_source.html#l00730">LMDefault::buildTour()</a>, <a class="el" href="../../d8/d68/dijkstra_8cpp_source.html#l00288">Dijkstra::buildTour()</a>, <a class="el" href="../../d5/dd2/LM__acyclic_8cpp_source.html#l00186">LMacyclic::extendLabel()</a>, <a class="el" href="../../d8/d68/dijkstra_8cpp_source.html#l00139">Dijkstra::extendLabel()</a>, <a class="el" href="../../df/dd4/LM__default_8cpp_source.html#l00335">LMDefault::extendLabel()</a>, <a class="el" href="../../d5/dd2/LM__acyclic_8cpp_source.html#l00016">LMacyclic::initLM()</a>, and <a class="el" href="../../d8/d68/dijkstra_8cpp_source.html#l00033">Dijkstra::solve()</a>.</p>
+<p class="reference">Referenced by <a class="el" href="../../d5/dd2/LM__acyclic_8cpp_source.html#l00116">LMacyclic::buildTour()</a>, <a class="el" href="../../df/dd4/LM__default_8cpp_source.html#l00778">LMDefault::buildTour()</a>, <a class="el" href="../../d8/d68/dijkstra_8cpp_source.html#l00288">Dijkstra::buildTour()</a>, <a class="el" href="../../d5/dd2/LM__acyclic_8cpp_source.html#l00186">LMacyclic::extendLabel()</a>, <a class="el" href="../../d8/d68/dijkstra_8cpp_source.html#l00139">Dijkstra::extendLabel()</a>, <a class="el" href="../../df/dd4/LM__default_8cpp_source.html#l00335">LMDefault::extendLabel()</a>, <a class="el" href="../../d5/dd2/LM__acyclic_8cpp_source.html#l00016">LMacyclic::initLM()</a>, and <a class="el" href="../../d8/d68/dijkstra_8cpp_source.html#l00033">Dijkstra::solve()</a>.</p>
 
 </div>
 </div>
@@ -395,7 +397,7 @@ Protected Attributes</h2></td></tr>
 <p class="definition">Definition at line <a class="el" href="../../d7/d4c/label_8h_source.html#l00026">26</a> of file <a class="el" href="../../d7/d4c/label_8h_source.html">label.h</a>.</p>
 <div class="fragment"><div class="line"><span class="lineno">   26</span>{<span class="keywordflow">return</span> <a class="code hl_variable" href="#a83d053352d0eed5c7ad906c3e5395b45">snapshot</a>[resID];}</div>
 </div><!-- fragment -->
-<p class="reference">Referenced by <a class="el" href="../../df/dd4/LM__default_8cpp_source.html#l00480">LMDefault::dominates()</a>, <a class="el" href="../../d5/dd2/LM__acyclic_8cpp_source.html#l00271">LMacyclic::earlyUpdate()</a>, <a class="el" href="../../d5/dd2/LM__acyclic_8cpp_source.html#l00186">LMacyclic::extendLabel()</a>, <a class="el" href="../../d8/d68/dijkstra_8cpp_source.html#l00139">Dijkstra::extendLabel()</a>, <a class="el" href="../../df/dd4/LM__default_8cpp_source.html#l00335">LMDefault::extendLabel()</a>, <a class="el" href="../../df/dd4/LM__default_8cpp_source.html#l00758">LMDefault::findLabels()</a>, <a class="el" href="../../da/d0b/dijkstra_8h_source.html#l00037">Dijkstra::getDistance()</a>, <a class="el" href="../../d5/dd2/LM__acyclic_8cpp_source.html#l00209">LMacyclic::insert()</a>, <a class="el" href="../../df/dd4/LM__default_8cpp_source.html#l00374">LMDefault::insert()</a>, <a class="el" href="../../df/dd4/LM__default_8cpp_source.html#l00314">LMDefault::isCriticalExtensionFeasible()</a>, <a class="el" href="../../d8/d68/dijkstra_8cpp_source.html#l00161">Dijkstra::isCriticalLabelValid()</a>, <a class="el" href="../../d5/dd2/LM__acyclic_8cpp_source.html#l00249">LMacyclic::isDominated()</a>, <a class="el" href="../../d5/dd2/LM__acyclic_8cpp_source.html#l00262">LMacyclic::isExtensionFeasible()</a>, <a class="el" href="../../df/dd4/LM__default_8cpp_source.html#l00294">LMDefault::isExtensionFeasible()</a>, <a class="el" href="../../df/dd4/LM__default_8cpp_source.html#l00665">LMDefault::isJoinFeasible()</a>, <a class="el" href="../../d5/dd2/LM__acyclic_8cpp_source.html#l00304">LMacyclic::join()</a>, <a class="el" href="../../d8/d68/dijkstra_8cpp_source.html#l00193">Dijkstra::joinLabels()</a>, and <a class="el" href="../../d8/d68/dijkstra_8cpp_source.html#l00033">Dijkstra::solve()</a>.</p>
+<p class="reference">Referenced by <a class="el" href="../../df/dd4/LM__default_8cpp_source.html#l00488">LMDefault::dominates()</a>, <a class="el" href="../../d5/dd2/LM__acyclic_8cpp_source.html#l00271">LMacyclic::earlyUpdate()</a>, <a class="el" href="../../d5/dd2/LM__acyclic_8cpp_source.html#l00186">LMacyclic::extendLabel()</a>, <a class="el" href="../../d8/d68/dijkstra_8cpp_source.html#l00139">Dijkstra::extendLabel()</a>, <a class="el" href="../../df/dd4/LM__default_8cpp_source.html#l00335">LMDefault::extendLabel()</a>, <a class="el" href="../../df/dd4/LM__default_8cpp_source.html#l00806">LMDefault::findLabels()</a>, <a class="el" href="../../da/d0b/dijkstra_8h_source.html#l00037">Dijkstra::getDistance()</a>, <a class="el" href="../../d5/dd2/LM__acyclic_8cpp_source.html#l00209">LMacyclic::insert()</a>, <a class="el" href="../../df/dd4/LM__default_8cpp_source.html#l00381">LMDefault::insert()</a>, <a class="el" href="../../df/dd4/LM__default_8cpp_source.html#l00314">LMDefault::isCriticalExtensionFeasible()</a>, <a class="el" href="../../d8/d68/dijkstra_8cpp_source.html#l00161">Dijkstra::isCriticalLabelValid()</a>, <a class="el" href="../../d5/dd2/LM__acyclic_8cpp_source.html#l00249">LMacyclic::isDominated()</a>, <a class="el" href="../../d5/dd2/LM__acyclic_8cpp_source.html#l00262">LMacyclic::isExtensionFeasible()</a>, <a class="el" href="../../df/dd4/LM__default_8cpp_source.html#l00294">LMDefault::isExtensionFeasible()</a>, <a class="el" href="../../df/dd4/LM__default_8cpp_source.html#l00708">LMDefault::isJoinFeasible()</a>, <a class="el" href="../../d5/dd2/LM__acyclic_8cpp_source.html#l00304">LMacyclic::join()</a>, <a class="el" href="../../d8/d68/dijkstra_8cpp_source.html#l00193">Dijkstra::joinLabels()</a>, and <a class="el" href="../../d8/d68/dijkstra_8cpp_source.html#l00033">Dijkstra::solve()</a>.</p>
 
 </div>
 </div>
@@ -457,7 +459,7 @@ Protected Attributes</h2></td></tr>
 <p class="definition">Definition at line <a class="el" href="../../d7/d4c/label_8h_source.html#l00028">28</a> of file <a class="el" href="../../d7/d4c/label_8h_source.html">label.h</a>.</p>
 <div class="fragment"><div class="line"><span class="lineno">   28</span>{<a class="code hl_variable" href="#a83d053352d0eed5c7ad906c3e5395b45">snapshot</a>[resID] = value;}</div>
 </div><!-- fragment -->
-<p class="reference">Referenced by <a class="el" href="../../d5/dd2/LM__acyclic_8cpp_source.html#l00116">LMacyclic::buildTour()</a>, <a class="el" href="../../df/dd4/LM__default_8cpp_source.html#l00730">LMDefault::buildTour()</a>, <a class="el" href="../../d8/d68/dijkstra_8cpp_source.html#l00288">Dijkstra::buildTour()</a>, <a class="el" href="../../d5/dd2/LM__acyclic_8cpp_source.html#l00186">LMacyclic::extendLabel()</a>, <a class="el" href="../../d8/d68/dijkstra_8cpp_source.html#l00139">Dijkstra::extendLabel()</a>, <a class="el" href="../../df/dd4/LM__default_8cpp_source.html#l00335">LMDefault::extendLabel()</a>, <a class="el" href="../../d5/dd2/LM__acyclic_8cpp_source.html#l00016">LMacyclic::initLM()</a>, and <a class="el" href="../../d8/d68/dijkstra_8cpp_source.html#l00033">Dijkstra::solve()</a>.</p>
+<p class="reference">Referenced by <a class="el" href="../../d5/dd2/LM__acyclic_8cpp_source.html#l00116">LMacyclic::buildTour()</a>, <a class="el" href="../../df/dd4/LM__default_8cpp_source.html#l00778">LMDefault::buildTour()</a>, <a class="el" href="../../d8/d68/dijkstra_8cpp_source.html#l00288">Dijkstra::buildTour()</a>, <a class="el" href="../../d5/dd2/LM__acyclic_8cpp_source.html#l00186">LMacyclic::extendLabel()</a>, <a class="el" href="../../d8/d68/dijkstra_8cpp_source.html#l00139">Dijkstra::extendLabel()</a>, <a class="el" href="../../df/dd4/LM__default_8cpp_source.html#l00335">LMDefault::extendLabel()</a>, <a class="el" href="../../d5/dd2/LM__acyclic_8cpp_source.html#l00016">LMacyclic::initLM()</a>, and <a class="el" href="../../d8/d68/dijkstra_8cpp_source.html#l00033">Dijkstra::solve()</a>.</p>
 
 </div>
 </div>
@@ -516,7 +518,7 @@ Protected Attributes</h2></td></tr>
 <p class="definition">Definition at line <a class="el" href="../../d7/d4c/label_8h_source.html#l00032">32</a> of file <a class="el" href="../../d7/d4c/label_8h_source.html">label.h</a>.</p>
 <div class="fragment"><div class="line"><span class="lineno">   32</span>{<span class="keywordflow">return</span> <a class="code hl_variable" href="#a0e989e692182fea3b94588f3b711956e">node</a>;}</div>
 </div><!-- fragment -->
-<p class="reference">Referenced by <a class="el" href="../../d9/dc5/algorithm_8cpp_source.html#l00049">Algorithm::buildPath()</a>, <a class="el" href="../../d5/dd2/LM__acyclic_8cpp_source.html#l00107">LMacyclic::closeLabel()</a>, <a class="el" href="../../d5/dd2/LM__acyclic_8cpp_source.html#l00271">LMacyclic::earlyUpdate()</a>, <a class="el" href="../../d0/d8c/PW__acyclic_8cpp_source.html#l00102">PWAcyclic::extend()</a>, <a class="el" href="../../db/dad/PW__default_8cpp_source.html#l00187">PWDefault::extend()</a>, <a class="el" href="../../d5/dd2/LM__acyclic_8cpp_source.html#l00186">LMacyclic::extendLabel()</a>, <a class="el" href="../../d8/d68/dijkstra_8cpp_source.html#l00139">Dijkstra::extendLabel()</a>, <a class="el" href="../../df/dd4/LM__default_8cpp_source.html#l00335">LMDefault::extendLabel()</a>, <a class="el" href="../../df/dd4/LM__default_8cpp_source.html#l00758">LMDefault::findLabels()</a>, <a class="el" href="../../df/dd4/LM__default_8cpp_source.html#l00231">LMDefault::getCandidateNode()</a>, <a class="el" href="../../d5/dd2/LM__acyclic_8cpp_source.html#l00209">LMacyclic::insert()</a>, <a class="el" href="../../df/dd4/LM__default_8cpp_source.html#l00374">LMDefault::insert()</a>, <a class="el" href="../../df/dd4/LM__default_8cpp_source.html#l00314">LMDefault::isCriticalExtensionFeasible()</a>, <a class="el" href="../../d8/d68/dijkstra_8cpp_source.html#l00161">Dijkstra::isCriticalLabelValid()</a>, <a class="el" href="../../d5/dd2/LM__acyclic_8cpp_source.html#l00249">LMacyclic::isDominated()</a>, <a class="el" href="../../d5/dd2/LM__acyclic_8cpp_source.html#l00262">LMacyclic::isExtensionFeasible()</a>, <a class="el" href="../../df/dd4/LM__default_8cpp_source.html#l00294">LMDefault::isExtensionFeasible()</a>, <a class="el" href="../../df/dd4/LM__default_8cpp_source.html#l00665">LMDefault::isJoinFeasible()</a>, <a class="el" href="../../d8/d68/dijkstra_8cpp_source.html#l00131">Dijkstra::isLabelValid()</a>, <a class="el" href="../../d5/dd2/LM__acyclic_8cpp_source.html#l00304">LMacyclic::join()</a>, <a class="el" href="../../d8/d68/dijkstra_8cpp_source.html#l00176">Dijkstra::joinCompletion()</a>, <a class="el" href="../../d8/d68/dijkstra_8cpp_source.html#l00193">Dijkstra::joinLabels()</a>, <a class="el" href="../../d8/dc3/label_8cpp_source.html#l00052">printLabel()</a>, <a class="el" href="../../d8/d68/dijkstra_8cpp_source.html#l00033">Dijkstra::solve()</a>, and <a class="el" href="../../df/dd4/LM__default_8cpp_source.html#l00360">LMDefault::updateUnreachables()</a>.</p>
+<p class="reference">Referenced by <a class="el" href="../../d9/dc5/algorithm_8cpp_source.html#l00049">Algorithm::buildPath()</a>, <a class="el" href="../../d5/dd2/LM__acyclic_8cpp_source.html#l00107">LMacyclic::closeLabel()</a>, <a class="el" href="../../d5/dd2/LM__acyclic_8cpp_source.html#l00271">LMacyclic::earlyUpdate()</a>, <a class="el" href="../../d0/d8c/PW__acyclic_8cpp_source.html#l00102">PWAcyclic::extend()</a>, <a class="el" href="../../db/dad/PW__default_8cpp_source.html#l00187">PWDefault::extend()</a>, <a class="el" href="../../d5/dd2/LM__acyclic_8cpp_source.html#l00186">LMacyclic::extendLabel()</a>, <a class="el" href="../../d8/d68/dijkstra_8cpp_source.html#l00139">Dijkstra::extendLabel()</a>, <a class="el" href="../../df/dd4/LM__default_8cpp_source.html#l00335">LMDefault::extendLabel()</a>, <a class="el" href="../../df/dd4/LM__default_8cpp_source.html#l00806">LMDefault::findLabels()</a>, <a class="el" href="../../df/dd4/LM__default_8cpp_source.html#l00231">LMDefault::getCandidateNode()</a>, <a class="el" href="../../d7/d4c/label_8h_source.html#l00035">getPredecessorNode()</a>, <a class="el" href="../../d5/dd2/LM__acyclic_8cpp_source.html#l00209">LMacyclic::insert()</a>, <a class="el" href="../../df/dd4/LM__default_8cpp_source.html#l00381">LMDefault::insert()</a>, <a class="el" href="../../df/dd4/LM__default_8cpp_source.html#l00314">LMDefault::isCriticalExtensionFeasible()</a>, <a class="el" href="../../d8/d68/dijkstra_8cpp_source.html#l00161">Dijkstra::isCriticalLabelValid()</a>, <a class="el" href="../../d5/dd2/LM__acyclic_8cpp_source.html#l00249">LMacyclic::isDominated()</a>, <a class="el" href="../../d5/dd2/LM__acyclic_8cpp_source.html#l00262">LMacyclic::isExtensionFeasible()</a>, <a class="el" href="../../df/dd4/LM__default_8cpp_source.html#l00294">LMDefault::isExtensionFeasible()</a>, <a class="el" href="../../df/dd4/LM__default_8cpp_source.html#l00708">LMDefault::isJoinFeasible()</a>, <a class="el" href="../../d8/d68/dijkstra_8cpp_source.html#l00131">Dijkstra::isLabelValid()</a>, <a class="el" href="../../d5/dd2/LM__acyclic_8cpp_source.html#l00304">LMacyclic::join()</a>, <a class="el" href="../../d8/d68/dijkstra_8cpp_source.html#l00176">Dijkstra::joinCompletion()</a>, <a class="el" href="../../d8/d68/dijkstra_8cpp_source.html#l00193">Dijkstra::joinLabels()</a>, <a class="el" href="../../d8/dc3/label_8cpp_source.html#l00052">printLabel()</a>, <a class="el" href="../../d8/d68/dijkstra_8cpp_source.html#l00033">Dijkstra::solve()</a>, and <a class="el" href="../../df/dd4/LM__default_8cpp_source.html#l00360">LMDefault::updateUnreachables()</a>.</p>
 
 </div>
 </div>
@@ -546,7 +548,7 @@ Protected Attributes</h2></td></tr>
 <p class="definition">Definition at line <a class="el" href="../../d7/d4c/label_8h_source.html#l00033">33</a> of file <a class="el" href="../../d7/d4c/label_8h_source.html">label.h</a>.</p>
 <div class="fragment"><div class="line"><span class="lineno">   33</span>{<span class="keywordflow">return</span> <a class="code hl_variable" href="#a01548631a66b8cce758a58cf908569a1">direction</a>;}</div>
 </div><!-- fragment -->
-<p class="reference">Referenced by <a class="el" href="../../d5/dd2/LM__acyclic_8cpp_source.html#l00107">LMacyclic::closeLabel()</a>, <a class="el" href="../../d5/dd2/LM__acyclic_8cpp_source.html#l00271">LMacyclic::earlyUpdate()</a>, <a class="el" href="../../d0/d8c/PW__acyclic_8cpp_source.html#l00102">PWAcyclic::extend()</a>, <a class="el" href="../../db/dad/PW__default_8cpp_source.html#l00187">PWDefault::extend()</a>, <a class="el" href="../../d5/dd2/LM__acyclic_8cpp_source.html#l00186">LMacyclic::extendLabel()</a>, <a class="el" href="../../df/dd4/LM__default_8cpp_source.html#l00335">LMDefault::extendLabel()</a>, <a class="el" href="../../df/dd4/LM__default_8cpp_source.html#l00159">LMDefault::getCandidate()</a>, <a class="el" href="../../df/dd4/LM__default_8cpp_source.html#l00689">LMDefault::getSolutionLabels()</a>, <a class="el" href="../../d5/dd2/LM__acyclic_8cpp_source.html#l00209">LMacyclic::insert()</a>, <a class="el" href="../../df/dd4/LM__default_8cpp_source.html#l00374">LMDefault::insert()</a>, <a class="el" href="../../df/dd4/LM__default_8cpp_source.html#l00314">LMDefault::isCriticalExtensionFeasible()</a>, <a class="el" href="../../d8/d68/dijkstra_8cpp_source.html#l00161">Dijkstra::isCriticalLabelValid()</a>, <a class="el" href="../../d5/dd2/LM__acyclic_8cpp_source.html#l00249">LMacyclic::isDominated()</a>, <a class="el" href="../../d5/dd2/LM__acyclic_8cpp_source.html#l00262">LMacyclic::isExtensionFeasible()</a>, <a class="el" href="../../df/dd4/LM__default_8cpp_source.html#l00294">LMDefault::isExtensionFeasible()</a>, <a class="el" href="../../d8/d68/dijkstra_8cpp_source.html#l00131">Dijkstra::isLabelValid()</a>, <a class="el" href="../../d5/dd2/LM__acyclic_8cpp_source.html#l00304">LMacyclic::join()</a>, <a class="el" href="../../d8/d68/dijkstra_8cpp_source.html#l00176">Dijkstra::joinCompletion()</a>, <a class="el" href="../../db/dad/PW__default_8cpp_source.html#l00156">PWDefault::labeling()</a>, <a class="el" href="../../d0/d8c/PW__acyclic_8cpp_source.html#l00057">PWAcyclic::solve()</a>, and <a class="el" href="../../df/dd4/LM__default_8cpp_source.html#l00360">LMDefault::updateUnreachables()</a>.</p>
+<p class="reference">Referenced by <a class="el" href="../../d5/dd2/LM__acyclic_8cpp_source.html#l00107">LMacyclic::closeLabel()</a>, <a class="el" href="../../d5/dd2/LM__acyclic_8cpp_source.html#l00271">LMacyclic::earlyUpdate()</a>, <a class="el" href="../../d0/d8c/PW__acyclic_8cpp_source.html#l00102">PWAcyclic::extend()</a>, <a class="el" href="../../db/dad/PW__default_8cpp_source.html#l00187">PWDefault::extend()</a>, <a class="el" href="../../d5/dd2/LM__acyclic_8cpp_source.html#l00186">LMacyclic::extendLabel()</a>, <a class="el" href="../../df/dd4/LM__default_8cpp_source.html#l00335">LMDefault::extendLabel()</a>, <a class="el" href="../../df/dd4/LM__default_8cpp_source.html#l00159">LMDefault::getCandidate()</a>, <a class="el" href="../../df/dd4/LM__default_8cpp_source.html#l00737">LMDefault::getSolutionLabels()</a>, <a class="el" href="../../d5/dd2/LM__acyclic_8cpp_source.html#l00209">LMacyclic::insert()</a>, <a class="el" href="../../df/dd4/LM__default_8cpp_source.html#l00381">LMDefault::insert()</a>, <a class="el" href="../../df/dd4/LM__default_8cpp_source.html#l00314">LMDefault::isCriticalExtensionFeasible()</a>, <a class="el" href="../../d8/d68/dijkstra_8cpp_source.html#l00161">Dijkstra::isCriticalLabelValid()</a>, <a class="el" href="../../d5/dd2/LM__acyclic_8cpp_source.html#l00249">LMacyclic::isDominated()</a>, <a class="el" href="../../d5/dd2/LM__acyclic_8cpp_source.html#l00262">LMacyclic::isExtensionFeasible()</a>, <a class="el" href="../../df/dd4/LM__default_8cpp_source.html#l00294">LMDefault::isExtensionFeasible()</a>, <a class="el" href="../../d8/d68/dijkstra_8cpp_source.html#l00131">Dijkstra::isLabelValid()</a>, <a class="el" href="../../d5/dd2/LM__acyclic_8cpp_source.html#l00304">LMacyclic::join()</a>, <a class="el" href="../../d8/d68/dijkstra_8cpp_source.html#l00176">Dijkstra::joinCompletion()</a>, <a class="el" href="../../db/dad/PW__default_8cpp_source.html#l00156">PWDefault::labeling()</a>, <a class="el" href="../../d0/d8c/PW__acyclic_8cpp_source.html#l00057">PWAcyclic::solve()</a>, and <a class="el" href="../../df/dd4/LM__default_8cpp_source.html#l00360">LMDefault::updateUnreachables()</a>.</p>
 
 </div>
 </div>
@@ -580,6 +582,37 @@ Protected Attributes</h2></td></tr>
 
 </div>
 </div>
+<a id="ad7227f9288a356b69385a8daa5415f04" name="ad7227f9288a356b69385a8daa5415f04"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ad7227f9288a356b69385a8daa5415f04">&#9670;&#160;</a></span>getPredecessorNode()</h2>
+
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">int Label::getPredecessorNode </td>
+          <td>(</td>
+          <td class="paramname"><span class="paramname"></span></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">inline</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p class="definition">Definition at line <a class="el" href="../../d7/d4c/label_8h_source.html#l00035">35</a> of file <a class="el" href="../../d7/d4c/label_8h_source.html">label.h</a>.</p>
+<div class="fragment"><div class="line"><span class="lineno">   35</span>{<span class="keywordflow">return</span> <a class="code hl_variable" href="#a98868aa355cebb6e346ef096a4d28faa">predecessor</a> ? <a class="code hl_variable" href="#a98868aa355cebb6e346ef096a4d28faa">predecessor</a>-&gt;<a class="code hl_function" href="#a9f4e410dadef0b1fd8729c4fc9a732d6">getNode</a>() : -1;}</div>
+<div class="ttc" id="aclassLabel_html_a9f4e410dadef0b1fd8729c4fc9a732d6"><div class="ttname"><a href="#a9f4e410dadef0b1fd8729c4fc9a732d6">Label::getNode</a></div><div class="ttdeci">int getNode()</div><div class="ttdef"><b>Definition</b> <a href="../../d7/d4c/label_8h_source.html#l00032">label.h:32</a></div></div>
+</div><!-- fragment -->
+<p class="reference">Referenced by <a class="el" href="../../df/dd4/LM__default_8cpp_source.html#l00488">LMDefault::dominates()</a>, <a class="el" href="../../df/dd4/LM__default_8cpp_source.html#l00708">LMDefault::isJoinFeasible()</a>, and <a class="el" href="../../df/dd4/LM__default_8cpp_source.html#l00360">LMDefault::updateUnreachables()</a>.</p>
+
+</div>
+</div>
 <a id="a09c93d37e144aa67d5064ac5de9fd404" name="a09c93d37e144aa67d5064ac5de9fd404"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#a09c93d37e144aa67d5064ac5de9fd404">&#9670;&#160;</a></span>isValid()</h2>
 
@@ -603,8 +636,8 @@ Protected Attributes</h2></td></tr>
 </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="../../d7/d4c/label_8h_source.html#l00035">35</a> of file <a class="el" href="../../d7/d4c/label_8h_source.html">label.h</a>.</p>
-<div class="fragment"><div class="line"><span class="lineno">   35</span>{<span class="keywordflow">return</span> <a class="code hl_variable" href="#a702f97f5ff180cec50c693ab214261a4">objective</a> != <a class="code hl_define" href="../../d2/d6f/constants_8h.html#ac1ae4add974b9cfc6b5aaf8a578f01ab">UNKNOWN</a>;}</div>
+<p class="definition">Definition at line <a class="el" href="../../d7/d4c/label_8h_source.html#l00037">37</a> of file <a class="el" href="../../d7/d4c/label_8h_source.html">label.h</a>.</p>
+<div class="fragment"><div class="line"><span class="lineno">   37</span>{<span class="keywordflow">return</span> <a class="code hl_variable" href="#a702f97f5ff180cec50c693ab214261a4">objective</a> != <a class="code hl_define" href="../../d2/d6f/constants_8h.html#ac1ae4add974b9cfc6b5aaf8a578f01ab">UNKNOWN</a>;}</div>
 </div><!-- fragment -->
 <p class="reference">Referenced by <a class="el" href="../../d5/dd2/LM__acyclic_8cpp_source.html#l00304">LMacyclic::join()</a>.</p>
 
@@ -637,7 +670,7 @@ Protected Attributes</h2></td></tr>
 <div class="line"><span class="lineno">   34</span>    <a class="code hl_variable" href="#a83d053352d0eed5c7ad906c3e5395b45">snapshot</a> = obj.<a class="code hl_variable" href="#a83d053352d0eed5c7ad906c3e5395b45">snapshot</a>;</div>
 <div class="line"><span class="lineno">   35</span>}</div>
 </div><!-- fragment -->
-<p class="reference">Referenced by <a class="el" href="../../de/d23/label__advanced_8cpp_source.html#l00029">LabelAdv::operator=()</a>.</p>
+<p class="reference">Referenced by <a class="el" href="../../de/d23/label__advanced_8cpp_source.html#l00033">LabelAdv::operator=()</a>.</p>
 
 </div>
 </div>
@@ -664,7 +697,7 @@ Protected Attributes</h2></td></tr>
 <div class="line"><span class="lineno">   41</span>    <span class="keywordflow">return</span> <span class="keyword">true</span>;</div>
 <div class="line"><span class="lineno">   42</span>}</div>
 </div><!-- fragment -->
-<p class="reference">Referenced by <a class="el" href="../../de/d23/label__advanced_8cpp_source.html#l00039">LabelAdv::operator==()</a>.</p>
+<p class="reference">Referenced by <a class="el" href="../../de/d23/label__advanced_8cpp_source.html#l00045">LabelAdv::operator==()</a>.</p>
 
 </div>
 </div>
@@ -691,7 +724,7 @@ Protected Attributes</h2></td></tr>
 <div class="line"><span class="lineno">   48</span>    <span class="keywordflow">return</span> <span class="keyword">false</span>;</div>
 <div class="line"><span class="lineno">   49</span>}</div>
 </div><!-- fragment -->
-<p class="reference">Referenced by <a class="el" href="../../de/d23/label__advanced_8cpp_source.html#l00046">LabelAdv::operator!=()</a>.</p>
+<p class="reference">Referenced by <a class="el" href="../../de/d23/label__advanced_8cpp_source.html#l00052">LabelAdv::operator!=()</a>.</p>
 
 </div>
 </div>
@@ -727,10 +760,9 @@ Protected Attributes</h2></td></tr>
 <div class="line"><span class="lineno">   64</span>        std::cout &lt;&lt; s &lt;&lt; <span class="stringliteral">&quot; &quot;</span>  &lt;&lt; std::endl;</div>
 <div class="line"><span class="lineno">   65</span>    std::cout&lt;&lt;<span class="stringliteral">&quot;------------&quot;</span>&lt;&lt;std::endl;</div>
 <div class="line"><span class="lineno">   66</span>}</div>
-<div class="ttc" id="aclassLabel_html_a9f4e410dadef0b1fd8729c4fc9a732d6"><div class="ttname"><a href="#a9f4e410dadef0b1fd8729c4fc9a732d6">Label::getNode</a></div><div class="ttdeci">int getNode()</div><div class="ttdef"><b>Definition</b> <a href="../../d7/d4c/label_8h_source.html#l00032">label.h:32</a></div></div>
 <div class="ttc" id="astructParameters_html_ada3be918d4ef55a4afb11b793dc6146b"><div class="ttname"><a href="../../db/dd7/structParameters.html#ada3be918d4ef55a4afb11b793dc6146b">Parameters::getVerbosity</a></div><div class="ttdeci">static int getVerbosity()</div><div class="ttdef"><b>Definition</b> <a href="../../d5/d33/param_8h_source.html#l00017">param.h:17</a></div></div>
 </div><!-- fragment -->
-<p class="reference">Referenced by <a class="el" href="../../df/dd4/LM__default_8cpp_source.html#l00835">LMDefault::printCandidates()</a>, <a class="el" href="../../df/dd4/LM__default_8cpp_source.html#l00847">LMDefault::printClosed()</a>, and <a class="el" href="../../d8/dc3/label_8cpp_source.html#l00068">printPredecessors()</a>.</p>
+<p class="reference">Referenced by <a class="el" href="../../df/dd4/LM__default_8cpp_source.html#l00883">LMDefault::printCandidates()</a>, <a class="el" href="../../df/dd4/LM__default_8cpp_source.html#l00895">LMDefault::printClosed()</a>, and <a class="el" href="../../d8/dc3/label_8cpp_source.html#l00068">printPredecessors()</a>.</p>
 
 </div>
 </div>
@@ -784,9 +816,9 @@ Protected Attributes</h2></td></tr>
 </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="../../d7/d4c/label_8h_source.html#l00048">48</a> of file <a class="el" href="../../d7/d4c/label_8h_source.html">label.h</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d7/d4c/label_8h_source.html#l00050">50</a> of file <a class="el" href="../../d7/d4c/label_8h_source.html">label.h</a>.</p>
 
-<p class="reference">Referenced by <a class="el" href="../../d7/d4c/label_8h_source.html#l00032">getNode()</a>, <a class="el" href="../../d8/dc3/label_8cpp_source.html#l00014">initLabel()</a>, <a class="el" href="../../de/d23/label__advanced_8cpp_source.html#l00013">LabelAdv::initVisited()</a>, <a class="el" href="../../d1/d37/label__advanced_8h_source.html#l00023">LabelAdv::isReachable()</a>, <a class="el" href="../../d8/dc3/label_8cpp_source.html#l00005">Label()</a>, <a class="el" href="../../d8/dc3/label_8cpp_source.html#l00044">operator!=()</a>, <a class="el" href="../../d8/dc3/label_8cpp_source.html#l00027">operator=()</a>, <a class="el" href="../../d8/dc3/label_8cpp_source.html#l00037">operator==()</a>, <a class="el" href="../../d8/dc3/label_8cpp_source.html#l00052">printLabel()</a>, <a class="el" href="../../d1/d37/label__advanced_8h_source.html#l00027">LabelAdv::setUnreachable()</a>, <a class="el" href="../../d8/dc3/label_8cpp_source.html#l00021">updateLabel()</a>, and <a class="el" href="../../de/d23/label__advanced_8cpp_source.html#l00019">LabelAdv::updateLabel()</a>.</p>
+<p class="reference">Referenced by <a class="el" href="../../d7/d4c/label_8h_source.html#l00032">getNode()</a>, <a class="el" href="../../d8/dc3/label_8cpp_source.html#l00014">initLabel()</a>, <a class="el" href="../../de/d23/label__advanced_8cpp_source.html#l00015">LabelAdv::initVisited()</a>, <a class="el" href="../../d1/d37/label__advanced_8h_source.html#l00023">LabelAdv::isReachable()</a>, <a class="el" href="../../d8/dc3/label_8cpp_source.html#l00005">Label()</a>, <a class="el" href="../../d8/dc3/label_8cpp_source.html#l00044">operator!=()</a>, <a class="el" href="../../d8/dc3/label_8cpp_source.html#l00027">operator=()</a>, <a class="el" href="../../d8/dc3/label_8cpp_source.html#l00037">operator==()</a>, <a class="el" href="../../d8/dc3/label_8cpp_source.html#l00052">printLabel()</a>, <a class="el" href="../../d1/d37/label__advanced_8h_source.html#l00027">LabelAdv::setUnreachable()</a>, <a class="el" href="../../d8/dc3/label_8cpp_source.html#l00021">updateLabel()</a>, and <a class="el" href="../../de/d23/label__advanced_8cpp_source.html#l00021">LabelAdv::updateLabel()</a>.</p>
 
 </div>
 </div>
@@ -810,7 +842,7 @@ Protected Attributes</h2></td></tr>
 </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="../../d7/d4c/label_8h_source.html#l00049">49</a> of file <a class="el" href="../../d7/d4c/label_8h_source.html">label.h</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d7/d4c/label_8h_source.html#l00051">51</a> of file <a class="el" href="../../d7/d4c/label_8h_source.html">label.h</a>.</p>
 
 <p class="reference">Referenced by <a class="el" href="../../d7/d4c/label_8h_source.html#l00033">getDirection()</a>, <a class="el" href="../../d8/dc3/label_8cpp_source.html#l00014">initLabel()</a>, <a class="el" href="../../d8/dc3/label_8cpp_source.html#l00005">Label()</a>, <a class="el" href="../../d8/dc3/label_8cpp_source.html#l00044">operator!=()</a>, <a class="el" href="../../d8/dc3/label_8cpp_source.html#l00027">operator=()</a>, <a class="el" href="../../d8/dc3/label_8cpp_source.html#l00037">operator==()</a>, and <a class="el" href="../../d8/dc3/label_8cpp_source.html#l00052">printLabel()</a>.</p>
 
@@ -836,9 +868,9 @@ Protected Attributes</h2></td></tr>
 </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="../../d7/d4c/label_8h_source.html#l00050">50</a> of file <a class="el" href="../../d7/d4c/label_8h_source.html">label.h</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d7/d4c/label_8h_source.html#l00052">52</a> of file <a class="el" href="../../d7/d4c/label_8h_source.html">label.h</a>.</p>
 
-<p class="reference">Referenced by <a class="el" href="../../d7/d4c/label_8h_source.html#l00034">getPredecessor()</a>, <a class="el" href="../../d8/dc3/label_8cpp_source.html#l00014">initLabel()</a>, <a class="el" href="../../d8/dc3/label_8cpp_source.html#l00005">Label()</a>, <a class="el" href="../../d8/dc3/label_8cpp_source.html#l00027">operator=()</a>, <a class="el" href="../../d8/dc3/label_8cpp_source.html#l00052">printLabel()</a>, <a class="el" href="../../d8/dc3/label_8cpp_source.html#l00021">updateLabel()</a>, and <a class="el" href="../../de/d23/label__advanced_8cpp_source.html#l00019">LabelAdv::updateLabel()</a>.</p>
+<p class="reference">Referenced by <a class="el" href="../../d7/d4c/label_8h_source.html#l00034">getPredecessor()</a>, <a class="el" href="../../d7/d4c/label_8h_source.html#l00035">getPredecessorNode()</a>, <a class="el" href="../../d8/dc3/label_8cpp_source.html#l00014">initLabel()</a>, <a class="el" href="../../d8/dc3/label_8cpp_source.html#l00005">Label()</a>, <a class="el" href="../../d8/dc3/label_8cpp_source.html#l00027">operator=()</a>, <a class="el" href="../../d8/dc3/label_8cpp_source.html#l00052">printLabel()</a>, <a class="el" href="../../d8/dc3/label_8cpp_source.html#l00021">updateLabel()</a>, and <a class="el" href="../../de/d23/label__advanced_8cpp_source.html#l00021">LabelAdv::updateLabel()</a>.</p>
 
 </div>
 </div>
@@ -862,9 +894,9 @@ Protected Attributes</h2></td></tr>
 </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="../../d7/d4c/label_8h_source.html#l00053">53</a> of file <a class="el" href="../../d7/d4c/label_8h_source.html">label.h</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d7/d4c/label_8h_source.html#l00055">55</a> of file <a class="el" href="../../d7/d4c/label_8h_source.html">label.h</a>.</p>
 
-<p class="reference">Referenced by <a class="el" href="../../d7/d4c/label_8h_source.html#l00023">getObjective()</a>, <a class="el" href="../../d7/d4c/label_8h_source.html#l00035">isValid()</a>, <a class="el" href="../../d7/d4c/label_8h_source.html#l00013">Label()</a>, <a class="el" href="../../d8/dc3/label_8cpp_source.html#l00005">Label()</a>, <a class="el" href="../../d8/dc3/label_8cpp_source.html#l00044">operator!=()</a>, <a class="el" href="../../d8/dc3/label_8cpp_source.html#l00027">operator=()</a>, <a class="el" href="../../d8/dc3/label_8cpp_source.html#l00037">operator==()</a>, <a class="el" href="../../d8/dc3/label_8cpp_source.html#l00052">printLabel()</a>, and <a class="el" href="../../d7/d4c/label_8h_source.html#l00024">setObjective()</a>.</p>
+<p class="reference">Referenced by <a class="el" href="../../d7/d4c/label_8h_source.html#l00023">getObjective()</a>, <a class="el" href="../../d7/d4c/label_8h_source.html#l00037">isValid()</a>, <a class="el" href="../../d7/d4c/label_8h_source.html#l00013">Label()</a>, <a class="el" href="../../d8/dc3/label_8cpp_source.html#l00005">Label()</a>, <a class="el" href="../../d8/dc3/label_8cpp_source.html#l00044">operator!=()</a>, <a class="el" href="../../d8/dc3/label_8cpp_source.html#l00027">operator=()</a>, <a class="el" href="../../d8/dc3/label_8cpp_source.html#l00037">operator==()</a>, <a class="el" href="../../d8/dc3/label_8cpp_source.html#l00052">printLabel()</a>, and <a class="el" href="../../d7/d4c/label_8h_source.html#l00024">setObjective()</a>.</p>
 
 </div>
 </div>
@@ -888,7 +920,7 @@ Protected Attributes</h2></td></tr>
 </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="../../d7/d4c/label_8h_source.html#l00054">54</a> of file <a class="el" href="../../d7/d4c/label_8h_source.html">label.h</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d7/d4c/label_8h_source.html#l00056">56</a> of file <a class="el" href="../../d7/d4c/label_8h_source.html">label.h</a>.</p>
 
 <p class="reference">Referenced by <a class="el" href="../../d7/d4c/label_8h_source.html#l00027">getSnapshot()</a>, <a class="el" href="../../d7/d4c/label_8h_source.html#l00026">getSnapshot()</a>, <a class="el" href="../../d8/dc3/label_8cpp_source.html#l00014">initLabel()</a>, <a class="el" href="../../d8/dc3/label_8cpp_source.html#l00005">Label()</a>, <a class="el" href="../../d8/dc3/label_8cpp_source.html#l00044">operator!=()</a>, <a class="el" href="../../d8/dc3/label_8cpp_source.html#l00027">operator=()</a>, <a class="el" href="../../d8/dc3/label_8cpp_source.html#l00037">operator==()</a>, <a class="el" href="../../d8/dc3/label_8cpp_source.html#l00052">printLabel()</a>, <a class="el" href="../../d7/d4c/label_8h_source.html#l00028">setSnapshot()</a>, and <a class="el" href="../../d7/d4c/label_8h_source.html#l00029">setSnapshot()</a>.</p>
 

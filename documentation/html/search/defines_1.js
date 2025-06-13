@@ -7,5 +7,6 @@ var searchData=
   ['algo_5fheuristic_4',['ALGO_HEURISTIC',['../d2/d6f/constants_8h.html#ab1ee3cb9ac65049991ee98df78f23dd8',1,'constants.h']]],
   ['algo_5foptimizing_5',['ALGO_OPTIMIZING',['../d2/d6f/constants_8h.html#a6a4c75b703a8673af9cdb9b354a64e1e',1,'constants.h']]],
   ['algo_5fready_6',['ALGO_READY',['../d2/d6f/constants_8h.html#afd50956c90634750ef802cb92762e1a3',1,'constants.h']]],
-  ['algo_5ftimelimit_7',['ALGO_TIMELIMIT',['../d2/d6f/constants_8h.html#a65f0bcda279aa2be916eb4815d39f16c',1,'constants.h']]]
+  ['algo_5ftimelimit_7',['ALGO_TIMELIMIT',['../d2/d6f/constants_8h.html#a65f0bcda279aa2be916eb4815d39f16c',1,'constants.h']]],
+  ['all_8',['ALL',['../d2/d6f/constants_8h.html#a1edd1ea8bddaf4d9c5eb3eae1ee1726a',1,'constants.h']]]
 ];

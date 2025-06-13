@@ -5,7 +5,9 @@ var searchData=
   ['dist_5feuclidean_2',['DIST_EUCLIDEAN',['../d2/d6f/constants_8h.html#a1970cc388973f715d91bb33ee8890179',1,'constants.h']]],
   ['dist_5fhaversine_3',['DIST_HAVERSINE',['../d2/d6f/constants_8h.html#a4755c3140ea835c8f4b88b854eb0c2a3',1,'constants.h']]],
   ['dist_5fnone_4',['DIST_NONE',['../d2/d6f/constants_8h.html#aec203abe922bd9c7d202c846846e0457',1,'constants.h']]],
-  ['dssr_5foff_5',['DSSR_OFF',['../d2/d6f/constants_8h.html#acc0b50c25185029147c5c4eea0a89cb5',1,'constants.h']]],
-  ['dssr_5frestricted_6',['DSSR_RESTRICTED',['../d2/d6f/constants_8h.html#abbb667357c6e60e9c614feeb4a596ef8',1,'constants.h']]],
-  ['dssr_5fstandard_7',['DSSR_STANDARD',['../d2/d6f/constants_8h.html#a6b2e7607e949bc792b34b47a3ad9392b',1,'constants.h']]]
+  ['dominant_5',['DOMINANT',['../d2/d6f/constants_8h.html#a47d419fce83f7503de9f0729ba36e046',1,'constants.h']]],
+  ['dominated_6',['DOMINATED',['../d2/d6f/constants_8h.html#a414c34369ac575d5c67ceac5d6c8cc1e',1,'constants.h']]],
+  ['dssr_5foff_7',['DSSR_OFF',['../d2/d6f/constants_8h.html#acc0b50c25185029147c5c4eea0a89cb5',1,'constants.h']]],
+  ['dssr_5frestricted_8',['DSSR_RESTRICTED',['../d2/d6f/constants_8h.html#abbb667357c6e60e9c614feeb4a596ef8',1,'constants.h']]],
+  ['dssr_5fstandard_9',['DSSR_STANDARD',['../d2/d6f/constants_8h.html#a6b2e7607e949bc792b34b47a3ad9392b',1,'constants.h']]]
 ];
