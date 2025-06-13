@@ -84,6 +84,19 @@
 #define CANDIDATE_RR 0
 #define CANDIDATE_NODE 1
 
+//Extension: Node Targets
+#define ALL (-1)
+
+//Label type (for 2-cycle elimination)
+//Default type
+#define UNDEFINED (-1)
+//Labels that cannot go back to the previous node
+#define DOMINANT 0
+//Labels that can go back to the previous node
+#define PARTIALLY_DOMINANT 1
+//Dominated labels (cannot be discarded)
+#define DOMINATED 2
+
 //Join Types
 #define JOIN_NAIVE 0
 #define JOIN_CLASSIC 1

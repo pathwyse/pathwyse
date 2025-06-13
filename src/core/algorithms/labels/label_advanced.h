@@ -26,6 +26,12 @@ public:
     Bitset & getUnreachable(){return unreachable;}
     void setUnreachable(int node){unreachable.set(node);}
 
+    //Extension target and label type management
+    int getExtensionTarget(){return extension_target;}
+    void setExtensionTarget(int extension_target){this->extension_target = extension_target;}
+    short getLabelType(){return label_type;}
+    void setLabelType(short label_type){this->label_type = label_type;}
+
     /** Operators **/
     void operator= (const LabelAdv& obj);
     bool operator== (LabelAdv& obj);
@@ -38,6 +44,8 @@ public:
 private:
     Bitset visited;
     Bitset unreachable;
+    short label_type = UNDEFINED;
+    int extension_target = ALL;
 };
 
 

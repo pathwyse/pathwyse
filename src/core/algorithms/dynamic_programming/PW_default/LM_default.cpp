@@ -360,11 +360,18 @@ void LMDefault::extendLabel(LabelAdv *current_label, LabelAdv *new_label, int ne
 void LMDefault::updateUnreachables(LabelAdv *candidate) {
     if(use_visited) {
         int node = candidate->getNode();
+        short label_type = PARTIALLY_DOMINANT;
+        int predecessor = candidate->getPredecessorNode();
+
         bool direction = candidate->getDirection();
         std::vector<int> & neighbors = problem->getNeighbors(node, direction);
         for(auto & neigh: neighbors)
             if(not isExtensionFeasible(candidate, neigh))
                 candidate->setUnreachable(neigh);
+
+        if (not isExtensionFeasible(candidate, predecessor))
+            label_type = DOMINANT;
+        candidate->setLabelType(label_type);
     }
 }
 
@@ -476,8 +483,9 @@ LabelAdv* LMDefault::insert(LabelAdv* new_label) {
     return new_label;
 }
 
+
 //Returns true if l1 dominates l2
-bool LMDefault::dominates(LabelAdv* l1, LabelAdv* l2) const {
+bool LMDefault::dominates(LabelAdv* l1, LabelAdv* l2)  {
 
     if(l1->getObjective() > l2->getObjective())
         return false;
@@ -486,12 +494,47 @@ bool LMDefault::dominates(LabelAdv* l1, LabelAdv* l2) const {
         if(l1->getSnapshot(id) > l2->getSnapshot(id))
             return false;
 
-    //Unreachable dominance
-    if(compare_unreachables)
-        return ((l1->getUnreachable()) & ~(l2->getUnreachable())).none();
+    if(not compare_unreachables)
+        return true;
 
-    return true;
+    //Unreachable dominance
+    bool isSubset = ((l1->getUnreachable()) & ~(l2->getUnreachable())).none();
+
+    if(not isSubset)
+        return false;
+
+    //if L1 is dominant, L2 can be discarded
+    if (l1->getLabelType() == DOMINANT)
+        return true;
+
+    //if L1 is dominated, L2 can be discarded (i.e., a partially dominant label exists that also dominates L2)
+    if (l1->getLabelType() == DOMINATED)
+        return l1->getExtensionTarget() != l2->getPredecessorNode();
+
+    //Otherwise, L1 is partially dominant
+    int l1_predecessor = l1->getPredecessorNode();
+    int l2_predecessor = l2->getPredecessorNode();
+
+    //if L1 and L2 have the same predecessor, L2 can be discarded
+    if (l1_predecessor==l2_predecessor)
+        return true;
+
+    //if L2 is dominated and will not extend towards L1 predecessor, L2 can be discarded
+    //Otherwise, L2 cannot be discarded
+    if(l2->getLabelType() == DOMINATED)
+        return l2->getExtensionTarget() != l1_predecessor;
+
+    //if L2 does not have resources to reach L1 predecessor, then L2 can be discarded
+    if (not isExtensionFeasible(l2, l1_predecessor))
+        return true;
+
+    //Otherwise, L2 is dominated but not discarded
+    //L2 will only extend towards l1 predecessor
+    l2->setLabelType(DOMINATED);
+    l2->setExtensionTarget(l1_predecessor);
+    return false;
 }
+
 
 /** Join **/
 void LMDefault::join(){
@@ -665,10 +708,15 @@ void LMDefault::orderedJoin(){
 bool LMDefault::isJoinFeasible(LabelAdv* label_forward, LabelAdv* label_backward) {
     int i = label_forward->getNode();
     int j = label_backward->getNode();
+    int i_predecessor = label_forward->getPredecessorNode();
+    int j_predecessor = label_backward->getPredecessorNode();
 
     int current_value;
     int snapshot_forward, snapshot_backward;
     std::vector<Resource*>& resources = problem->getResources();
+
+    if (i == j_predecessor or j == i_predecessor)
+        return false;
 
     for(int resID = 0; resID < problem->getNumRes(); resID++) {
         snapshot_forward = label_forward->getSnapshot(resID);

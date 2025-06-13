@@ -62,7 +62,7 @@ public:
 
     //Label insertion
     LabelAdv* insert(LabelAdv *new_label);
-    bool dominates (LabelAdv *l1, LabelAdv *l2) const;
+    bool dominates (LabelAdv *l1, LabelAdv *l2);
 
     /** Join **/
     void join();

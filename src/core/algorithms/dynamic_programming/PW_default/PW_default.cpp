@@ -187,8 +187,11 @@ void PWDefault::labeling(bool forward, bool backward) {
 void PWDefault::extend(LabelAdv* candidate) {
     LabelAdv new_label = LabelAdv();
     int node = candidate->getNode();
-    std::vector<int> neighbors = problem->getNeighbors(node, candidate->getDirection());
     bool active;
+
+    std::vector<int> neighbors = (candidate->getExtensionTarget() == ALL)
+        ? problem->getNeighbors(node, candidate->getDirection())
+        : std::vector<int>{candidate->getExtensionTarget()};
 
     for(auto & neigh: neighbors) {
 

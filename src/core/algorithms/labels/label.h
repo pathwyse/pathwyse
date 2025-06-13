@@ -32,6 +32,8 @@ public:
     int getNode(){return node;}
     bool getDirection(){return direction;}
     Label* getPredecessor(){return predecessor;}
+    int getPredecessorNode(){return predecessor ? predecessor->getNode() : -1;}
+
     bool isValid(){return objective != UNKNOWN;}
 
     /** Operators **/
