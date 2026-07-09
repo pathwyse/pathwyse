@@ -106,10 +106,16 @@ After compilation, instances can be solved from the command line:
 
 The instance format is described in: [Instance Format](https://pathwyse.github.io/pathwyse/documentation/INSTANCE/)
 
+We provide a toy instance under `instances/toy.txt` to verify the installation. Additional benchmark instances from the literature are available under `instances/`:
+
+- `instances/spprclib/` — SPPRCLIB [Jepsen et al., 2008]
+- `instances/dimacs/` — DIMACS 9th Challenge
+- `instances/longestpath/` — LongestPath [Salani et al., 2024]
+
 The file `pathwyse.set` contains the main configuration parameters. 
 A complete description of the available options is provided in: [Parameters](https://pathwyse.github.io/pathwyse/documentation/PARAMETERS_TABLE/)
 
-Additional information about launch parameters and example instances can be found in [Extras](https://pathwyse.github.io/pathwyse/documentation/EXTRAS/).
+Command-line keywords for overriding instance data at runtime are described in: [Extras](https://pathwyse.github.io/pathwyse/documentation/EXTRAS/).
 
 Instructions for using PathWyse from Python are available in: [Python](https://pathwyse.github.io/pathwyse/python/PYTHON/)
 
