@@ -1,6 +1,8 @@
 # Instance files
 
-This is the standard instance format for PathWyse (version 1.0).
+This is the standard file format for PathWyse instances.
+
+They can also be built programmatically, in both C++ and Python. See [Creating an instance programmatically](../python/PYTHON_EXAMPLE_CREATE.md) for a Python example.
 
 Properties of instances can be described by defining the problem and the network with either atomic values, sequences or lists. 
 
