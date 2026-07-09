@@ -1,4 +1,6 @@
 #include "algorithm.h"
+#include <utility>
+#include "utils/logger.h"
 
 /** Algorithm management **/
 Algorithm::Algorithm(std::string name, Problem* problem){
@@ -7,7 +9,8 @@ Algorithm::Algorithm(std::string name, Problem* problem){
     parallel = false;
     bidirectional = false;
     best_solution_id = -1;
-    this->name = name;
+    timelimit = -1;
+    this->name = std::move(name);
 
     initAlgorithm();
     setProblem(problem);
@@ -19,6 +22,7 @@ void Algorithm::initAlgorithm(){
     setStatus(ALGO_READY);
     incumbent = INFPLUS;
     lower_bound = INFMINUS;
+    timeout = false;
 }
 
 /** Solution management **/
@@ -51,6 +55,10 @@ void Algorithm::buildPath(int objective, Label* forward_label, Label* backward_l
     if(forward_label == nullptr and backward_label == nullptr)
         return;
 
+    bool node_join = false;
+    if (forward_label and backward_label)
+        node_join = forward_label->getNode() == backward_label->getNode();
+
     Path s;
 
     //Updates objective
@@ -64,7 +72,10 @@ void Algorithm::buildPath(int objective, Label* forward_label, Label* backward_l
         forward_label = forward_label->getPredecessor();
     }
 
-    while(backward_label != nullptr){
+    if (node_join)
+        backward_label = backward_label->getPredecessor();
+
+    while (backward_label != nullptr) {
         tour.push_back(backward_label->getNode());
         backward_label = backward_label->getPredecessor();
     }
@@ -72,34 +83,45 @@ void Algorithm::buildPath(int objective, Label* forward_label, Label* backward_l
     s.setTour(tour);
 
     //Updates total cost of arcs and nodes
-    if(s.isElementary()){
-        int arcCost = 0;
-        int nodeCost = 0;
+    int arcCost = 0;
+    int nodeCost = 0;
 
-        auto obj = problem->getObj();
+    auto obj = problem->getObj();
 
-        int i = problem->getOrigin();
-        for(int j: tour) {
-            //Get Node Cost
-            if(i != problem->getDestination())
-                nodeCost += obj->getNodeCost(i);
+    int i = problem->getOrigin();
+    for(int j: tour) {
+        //Get Node Cost
+        if(i != problem->getDestination())
+            nodeCost += obj->getNodeCost(i);
 
-            //Get Arc cost
-            if(i != j)
-                arcCost += obj->getArcCost(i, j);
+        //Get Arc cost
+        if(i != j)
+            arcCost += obj->getArcCost(i, j);
 
-            i = j;
-        }
-        s.setArcCost(arcCost);
-        s.setNodeCost(nodeCost);
+        i = j;
     }
-
+    s.setArcCost(arcCost);
+    s.setNodeCost(nodeCost);
+    
     addSolution(s);
 }
 
+/** Timelimit management **/
+bool Algorithm::isTimeLimitReached(){
+    if (timelimit <= EPS) return false;
+
+    if(collector.getGlobalTimeNow() > timelimit){
+        setStatus(ALGO_TIMELIMIT);
+        timeout = true;
+        return true;
+    }
+
+    return false;
+}
 /** Output management **/
 void Algorithm::printStatus() {
     std::string status;
+    const char* col = COL_RESET;
 
     switch(algo_status){
         case ALGO_READY:
@@ -110,21 +132,35 @@ void Algorithm::printStatus() {
             break;
         case ALGO_DONE:
             status = "Optimization complete";
+            col = GREEN;
             break;
         case ALGO_TIMELIMIT:
             status = "Timelimit reached";
+            col = YELLOW;
             break;
         case ALGO_BOUNDLIMIT:
             status = "Boundlimit reached";
+            col = YELLOW;
             break;
         case ALGO_GAPLIMIT:
             status = "Gaplimit reached";
+            col = YELLOW;
             break;
         default:
             break;
     }
 
-    std::cout << name << " status: " << status <<  std::endl;
+    Logger::log(name + " Status", status, VERB_STD, col);
+}
+
+void Algorithm::printGlobalTime(){
+    auto time = getGlobalTime();
+    Logger::log(name + " Time", std::to_string(time));
+}
+
+void Algorithm::printAlgorithm(){
+    printStatus();
+    printGlobalTime();
 }
 
 /** Data collection management **/
@@ -161,7 +197,7 @@ void Algorithm::initDataCollection() {
 
 
 void Algorithm::collectSolution(int id){
-    if(not Parameters::isCollecting())
+    if(not Parameters::isCollecting() or id == -1)
         return;
 
     collector_sol.collect("executionID", executionID);

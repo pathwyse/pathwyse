@@ -34,6 +34,8 @@ protected:
     int round;
 
     bool preprocessingCritical;
+    int preprocessingIntensity;
+
     Bitset criticalActive;
 
     Dijkstra* dijkstra;

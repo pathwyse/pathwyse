@@ -1,6 +1,6 @@
 #include "time_windows.h"
 #include <algorithm>
-
+#include "utils/logger.h"
 TimeWindow::TimeWindow() {
     name = "Time Window";
     init_value = 0;
@@ -14,6 +14,11 @@ void TimeWindow::init(int origin, int destination) {
     for(int i = 0; i < node_upper_bound.size(); i++)
         if(i != destination)
             upper_bound = std::max(upper_bound, node_upper_bound[i] + data->getNodeCost(i) + data->getArcCost(i, destination));
+
+    if (node_upper_bound[destination] == 0){
+        Logger::warn("Malformed instance, destination TW upper bound is 0. Changing it to MAX_INT.");
+        node_upper_bound[destination] = upper_bound;
+    }
 }
 
 int TimeWindow::extend(int current_value, int i, int j, bool direction) {
@@ -36,12 +41,13 @@ int TimeWindow::join(int current_value_forward, int current_value_backward, int 
 }
 
 int TimeWindow::join(int current_value_forward, int current_value_backward, int node){
-    return current_value_forward + current_value_backward - data->getNodeCost(node);
+    return current_value_forward + current_value_backward + data->getNodeCost(node);
 }
 
 bool TimeWindow::isFeasible(int current_value, int current_node, double bounding, bool direction) {
     if(current_value > upper_bound*bounding) return false;
 
+    
     if(current_node >= 0) {
         int feasible_value = direction ? node_upper_bound[current_node] : upper_bound - (node_lower_bound[current_node] + data->getNodeCost(current_node));
         if(current_value > feasible_value) return false;

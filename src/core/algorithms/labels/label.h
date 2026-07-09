@@ -10,7 +10,7 @@ public:
 
     /** Label management **/
     //Constructors and destructors
-    Label() {objective = UNKNOWN;}
+    Label() {}
     Label(const Label &obj);
 
     virtual ~Label() = default;
@@ -34,7 +34,7 @@ public:
     Label* getPredecessor(){return predecessor;}
     int getPredecessorNode(){return predecessor ? predecessor->getNode() : -1;}
 
-    bool isValid(){return objective != UNKNOWN;}
+    bool isObjectiveSet(){return objective != UNKNOWN;}
 
     /** Operators **/
     void operator= (const Label& obj);
@@ -45,14 +45,16 @@ public:
     void printLabel();
     void printPredecessors();
 
-protected:
+    /** Comparators **/
+    static bool cmpObj(Label* a, Label* b) {return a->getObjective() < b->getObjective();}
 
-    int node;
-    bool direction;
-    Label* predecessor;
+protected:
+    int node = -1;
+    bool direction = true;
+    Label* predecessor = nullptr;
 
     //Resources
-    int objective;
+    int objective = UNKNOWN;
     std::vector<int> snapshot;
 };
 

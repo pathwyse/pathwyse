@@ -3,9 +3,8 @@
 /** Algorithm management **/
 //Constructors and destructors
 PWAcyclic::PWAcyclic(std::string name, Problem* problem): Algorithm(name, problem){
-    problem->initBoundLabels();
-    label_manager = new LMacyclic(problem);
     preprocess = new Preprocessing(name, problem);
+    label_manager = new LMacyclic(problem);
     initDataCollection();
     setStatus(ALGO_READY);
 }
@@ -20,6 +19,7 @@ void PWAcyclic::initAlgorithm() {
     it_dominated = 0;
     it_ext_fw = it_ext_bw = 0;
     ins_attempts_fw = ins_attempts_bw = 0;
+    timelimit = Parameters::getDefaultTimelimit();
 }
 
 //Perform preprocessing
@@ -42,7 +42,7 @@ bool PWAcyclic::preprocessing(){
     }
     else if(problem->getStatus() != PROBLEM_INFEASIBLE) {
         if(Parameters::getVerbosity() >= 2)
-            std::cout<<"Feasible solution found during pre-processing...searching for an optimal solution"<<std::endl;
+            std::cout<<"Pre-processing complete...searching for an optimal solution"<<std::endl;
         search_required = true;
 
         label_manager->setSplit(preprocess->getSplit());
@@ -61,6 +61,10 @@ void PWAcyclic::solve() {
         std::cout<<"Terminating: PWAcyclic is not suitable for cyclic problems. Please, choose another algorithm."<<std::endl;
         return;
     }
+    if(problem->getNumRes() > 1) {
+        std::cout<<"Terminating: PWAcyclic is not suitable for instances with more than one resource. Please, choose another algorithm."<<std::endl;
+        return;
+    }
     collector.startGlobalTime();
 
     initAlgorithm();
@@ -69,6 +73,7 @@ void PWAcyclic::solve() {
     if(search) {
         Label* candidate;
         while(label_manager->candidatesAvailable()){
+            if (isTimeLimitReached()) break;
             candidate = label_manager->getCandidate();
             candidate->getDirection() ? it_ext_fw++ : it_ext_bw++;
 
@@ -115,7 +120,7 @@ void PWAcyclic::extend(Label* candidate) {
 
 //Builds a path from two labelss
 void PWAcyclic::managePaths(){
-
+    if (timeout) return;
     auto [objective, l1, l2] = *label_manager->getJoin();
 
     auto fw = l1.getDirection() ? &l1 : &l2;
@@ -135,7 +140,6 @@ void PWAcyclic::managePaths(){
 
     std::list<Label> tourFW = label_manager->buildTour(bestPath->getTour(), true);
     bestPath->setConsumption(tourFW.back().getSnapshot());
-
 }
 
 //Reset

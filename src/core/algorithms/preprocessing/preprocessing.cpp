@@ -3,9 +3,11 @@
 
 /** Algorithm management **/
 Preprocessing::Preprocessing(std::string name, Problem* problem): Algorithm(name, problem) {
+    problem->initBoundLabels();
     initDataCollection();
     dijkstra = new Dijkstra(name, problem);
     preprocessingCritical = Parameters::isPreprocessingCritical();
+    preprocessingIntensity = Parameters::getPreprocessingIntensity();
     if(preprocessingCritical)
         criticalActive = Bitset(problem->getNumNodes());
     round = 0;
@@ -13,7 +15,7 @@ Preprocessing::Preprocessing(std::string name, Problem* problem): Algorithm(name
     setStatus(ALGO_READY);
 }
 
-//Performs up to 4 preprocessing run to computer lower and upper bunds and completion labels
+//Performs preprocessing runs to computer lower and upper bunds and completion labels
 void Preprocessing::solve() {
     setStatus(ALGO_OPTIMIZING);
 
@@ -30,7 +32,18 @@ void Preprocessing::solve() {
 
     //Round 2F: Cost, Forward
     if(preprocess)
-        preprocess  = solveRound(true, RES_COST);
+        preprocess = solveRound(true, RES_COST);
+
+    //Extra Rounds: Other resources
+    if(preprocessingIntensity == PREPROCESSING_FULL)
+        for(int id = 1; id < problem->getNumRes(); id++){
+            if(not preprocess)
+                break;
+            preprocess = solveRound(false, id);
+            if(not preprocess)
+                break;
+            preprocess = solveRound(true, id);
+        }
 
     setStatus(ALGO_DONE);
     collector.writeData();

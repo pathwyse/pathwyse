@@ -5,16 +5,16 @@ from bin.wrapper import PWSolver
 instance = sys.argv[1]
 
 #Create a PathWyse solver
-pathwyse = PWSolver()
+pw = PWSolver()
 
 #Read problem
-pathwyse.readProblem(instance)
+pw.readProblem(instance)
 
 #Setup algorithms
-pathwyse.setupAlgorithms()
+pw.setupAlgorithms()
 
 #Solve the problem
-pathwyse.solve()
+pw.solve()
 
 #Print best solution
-pathwyse.printBestSolution()
+pw.printBestSolution()

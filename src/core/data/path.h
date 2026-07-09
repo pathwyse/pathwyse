@@ -48,7 +48,8 @@ public:
     bool isFeasible(){return solution_status == PATH_FEASIBLE;}
 
     /** Print path information **/
-    void printPath();
+    void printPath(double init_cost = 0.0, double cost_scale = 1.0);
+    void printTour();
     void printStatus();
 
     /** Labels management **/
@@ -70,11 +71,14 @@ private:
 };
 
 /** Path Comparison **/
-//Objective based
-struct less_than_objective
+//Objective and Status based
+struct less_than_objective_status
 {
     bool operator() (Path& p1, Path& p2){
-        return (p1.getObjective() < p2.getObjective());
+        return (
+            p1.getObjective() < p2.getObjective() or 
+            (p1.getObjective() == p2.getObjective() and p1.getStatus() < p2.getStatus())
+        );
     }
 };
 

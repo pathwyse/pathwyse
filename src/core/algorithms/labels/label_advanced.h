@@ -10,21 +10,30 @@ public:
 
     /** Label management **/
     //Constructors and destructors
-    LabelAdv() = default;
+    LabelAdv() {};
     LabelAdv(const LabelAdv &obj);
 
     ~LabelAdv() override = default;
 
     //Init and updates
     void initVisited(int node, int n_nodes);
-    void updateLabel(int node, Label* predecessor);
+    void updateLabel(int node, LabelAdv* predecessor);
 
     //Visited and unreachable management
     bool isReachable(int node) {return unreachable.get(node) == 0;}
     void updateUnreachables(Bitset & mask) {unreachable &= mask; visited &= mask;}
     Bitset & getVisited(){return visited;}
+    bool getVisitedActive(int i){return visited.get(i);}
     Bitset & getUnreachable(){return unreachable;}
+    bool getUnreachableActive(int i){return unreachable.get(i);}
+
+
     void setUnreachable(int node){unreachable.set(node);}
+    int getUnreachableCount(){return unreachable.count();}
+
+    //Dominated and Elementary status management
+    bool isDominated(){return label_type == DOMINATED;}
+    void setDominated(){this->label_type = DOMINATED;}
 
     //Extension target and label type management
     int getExtensionTarget(){return extension_target;}
@@ -41,11 +50,11 @@ public:
     void printVisited() {std::cout<<visited<<std::endl;}
     void printUnreachable() {std::cout<<unreachable<<std::endl;}
 
-private:
-    Bitset visited;
-    Bitset unreachable;
+protected:
     short label_type = UNDEFINED;
     int extension_target = ALL;
+    Bitset visited;
+    Bitset unreachable;
 };
 
 

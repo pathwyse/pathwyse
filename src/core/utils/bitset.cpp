@@ -33,3 +33,14 @@ bool operator==(const Bitset& a, const Bitset& b)
     return (a.m_num_bits == b.m_num_bits)
            && (a.m_bitset == b.m_bitset);
 }
+
+bool is_subset(const Bitset& a, const Bitset& b) 
+{
+    assert(a.size() == b.size());
+    
+    for (size_t i = 0; i < a.m_bitset.size(); ++i) {
+        if ((a.m_bitset[i] & b.m_bitset[i]) != a.m_bitset[i])
+            return false;
+    }
+    return true;
+}

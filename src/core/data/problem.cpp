@@ -2,6 +2,8 @@
 #include <iostream>
 #include <iterator>
 #include <sstream>
+#include <cmath>
+#include <utils/logger.h>
 
 /** Problem Management **/
 //Constructors and destructors
@@ -11,11 +13,20 @@ Problem::Problem() {
     origin = 0;
     destination = 0;
     n_res = 0;
+    n_arcs = 0;
+    cost_scale_factor = 1.0;
+    duplicate_depot = false;
+    directed_set = false;
+    cyclic_set = false;
+    symmetric_set = false;
     cycles = false;
-    complete = false;
+    init_done = false;
+    build_done = false;
     objective = nullptr;
     bound_labels = nullptr;
     setStatus(PROBLEM_INDETERMINATE);
+    //Initialize Data Collection
+    initDataCollection();
 }
 
 Problem::~Problem() {
@@ -26,22 +37,47 @@ Problem::~Problem() {
 }
 
 //Initialize Problem
-void Problem::initProblem(){
+void Problem::init(){
+    if (n_nodes <= 0) {
+        Logger::error("Network has no nodes");
+        return;
+    }
+
+    // Apply defaults for flags not explicitly set, with warnings
+    if(not directed_set) {
+        directed = false;
+        Logger::warn("Directed not set, assuming undirected edges");
+    }
+
+    if(not symmetric_set) {
+        symmetric = false;
+        Logger::warn("Symmetric not set, assuming asymmetric network");
+    }
+
+    if(not cyclic_set) {
+        cycles = false;
+        Logger::warn("Cyclic not set, assuming acyclic network");
+    }
+
     //Use Data Compression for sparse data
-    compress_data = not complete and n_nodes > Parameters::getCompressionThreshold();
+    compress_data = n_nodes > Parameters::getCompressionThreshold();
 
     //Duplicate origin node
-    if(origin == destination)
+    if(origin == destination){
+        duplicate_depot = true;
         destination = n_nodes++;
+        Logger::warn("Duplicating depot node. Destination is now: " + std::to_string(destination));
+    }
+
 
     //Initialize Network
-    network.initGraph(compress_data, n_nodes, complete);
+    network.initGraph(compress_data, n_nodes);
 
     //Initialize Objective data structures
     initObjective();
 
-    //Initialize Data Collection
-    initDataCollection();
+    init_done = true;
+
 }
 
 void Problem::printStatus(){
@@ -61,7 +97,7 @@ void Problem::printStatus(){
             break;
     }
 
-    std::cout << "Problem Status: " << status <<  std::endl;
+    Logger::log("Problem Status", status);
 }
 
 /** Objective and Resource management **/
@@ -77,367 +113,99 @@ void Problem::initObjective(Resource *objective) {
 }
 
 //Initialize a resource Data Object
-int Problem::addResource(int type) {
+int Problem::addResource(std::string type) {
     Resource* res;
     int index;
 
-    switch(type){
-        case RES_CAPACITY:
-            res = new Capacity();
-        break;
-        case RES_TIME:
-            res = new Time();
-        break;
-        case RES_TIMEWINDOWS:
-            res = new TimeWindow();
-        break;
-        case RES_NODELIM:
-            res = new NodeLim();
-        break;
-        default:
-            std::cout << "Inserted type does not correspond to any default resource" << std::endl;
-        break;
+    if (type == "CAP") res = new Capacity();
+    else if (type == "TIME")  res = new Time();
+    else if (type == "TW") res = new TimeWindow();
+    else if (type == "NODELIM") res = new NodeLim();
+    else {
+        Logger::warn("Resource " + type + "has no match and cannot be instantiated.");
+        return -1;
     }
 
     resources.push_back(res);
     res->initData(compress_data, n_nodes);
-
+    index = resources.size()-1;
     return index;
 }
 
-void Problem::createResources(std::vector<int> & resources_type){
-    for(auto rt: resources_type)
-        addResource(rt);
+void Problem::createResources(std::vector<std::string> & resources_type){
+    for(auto rt: resources_type) addResource(rt);
 }
 
-void Problem::setArcConsumption(int i, int j,  std::vector<int> consumption) {
-    for(int r = 0; r < resources.size(); r++)
-        resources[r]->setArcCost(i, j, consumption[r]);
+int Problem::getCoordDistanceType(std::string distance) {
+    if(distance == "2D")
+        return DIST_2D;
+    if (distance == "GEO")
+        return DIST_GEOGRAPHIC;
+
+    return DIST_NONE;
 }
 
-void Problem::setNodeConsumption(int id, std::vector<int> consumption) {
-    for(int r = 0; r < resources.size(); r++)
-        if(consumption[r] >= 0)
-            resources[r]->setNodeCost(id, consumption[r]);
-}
-
-void Problem::scaleObjective(float scaling) {
-    objective->scaleResource(scaling);
-}
-
-void Problem::scaleResource(int id, float scaling) {
-    resources[id]->scaleResource(scaling);
-}
-
-void Problem::scaleAllData(float scaling) {
-    objective->multiplyInitValue(scaling);
-    objective->multiplyUB(scaling);
-    objective->multiplyLB(scaling);
-
-    for(auto r: resources){
-        r->multiplyInitValue(scaling);
-        r->multiplyUB(scaling);
-        r->multiplyLB(scaling);
-    }
-
+int Problem::getMinConsumptionAtExtension(int res_id)
+{
+    int min_consumption = INFPLUS;
     for(int i = 0; i < n_nodes; i++) {
-        objective->multiplyNodeCost(i, scaling);
-        objective->multiplyNodeBound(i, scaling);
-        for(auto r: resources){
-            r->multiplyNodeCost(i, scaling);
-            r->multiplyNodeBound(i, scaling);
-        }
-
-        auto& neighbors = network.getNeighbors(i, true);
-        for(auto j: neighbors) {
-            objective->multiplyArcCost(i, j, scaling);
-            for(auto r: resources)
-                r->multiplyArcCost(i, j, scaling);
+        for(auto j: network.getNeighbors(i, true)) {
+            if (j == origin or j == destination)
+                continue;
+            int consumption = resources[res_id]->extend(0,i,j,true);
+            if (consumption < min_consumption)
+                min_consumption = consumption;
         }
     }
+    return min_consumption;
 }
 
 /** Read from instance file **/
-//Read and initialize data (compact reader)
-void Problem::readSparseProblem(std::string file_name) {
-    std::ifstream f;
-    std::string line, key, label, separator, res_name, res_type, data_type;
-    std::vector<std::string> tokens;
-    bool symmetric = false, use_depot = false;
-    int res_id, i, j, di, dj, xval, yval;
-    int lb, ub, cost, consumption;
-    directed = true;
-
-    if(Parameters::getVerbosity() >= 3)
-        std::cout<<"Reading problem data: "<<file_name<<std::endl;
-
-    //If present, override origin and destination with console input
-    if(Parameters::getOrigin() != -1)
-        this->origin = Parameters::getOrigin();
-    if(Parameters::getDestination() != -1)
-        this->destination = Parameters::getDestination();
-
-    //Read from file
-    f.open(file_name.c_str());
-
-    while(readNextLine(f, line, tokens, key)) {
-        //Read initialization data
-        if (key == "NAME") this->name = tokens[2];
-        else if (key == "SIZE") this->n_nodes = std::stoi(tokens[2]);
-        else if (key == "DIRECTED") directed = std::stoi(tokens[2]);
-        else if (key == "CYCLIC") this->cycles = std::stoi(tokens[2]);
-        else if (key == "SYMMETRIC") symmetric = std::stoi(tokens[2]);
-        else if (key == "COMPLETE") {
-            this->complete = std::stoi(tokens[2]);
-            collector.collect("complete", complete);
-        }
-        else if (key == "RESOURCES") this->n_res = std::stoi(tokens[2]);
-        else if (key == "ORIGIN") {
-            if (Parameters::getOrigin() == -1)
-                this->origin = std::stoi(tokens[2]);
-        }
-        else if (key == "DESTINATION") {
-            if (Parameters::getDestination() == -1)
-                this->destination = std::stoi(tokens[2]);
-        }
-        else if (key == "RES_TYPE") {
-            //Duplicate origin node if necessary
-            if (origin == destination)
-                use_depot = true;
-
-            //Initialize problem
-            initProblem();
-
-            readNextLine(f, line, tokens, key);
-
-            while (key != "END") {
-                //Initialize resource objects
-                res_type = tokens[1];
-                if (res_type == "CAP") addResource(RES_CAPACITY);
-                else if (res_type == "TIME") addResource(RES_TIME);
-                else if (res_type == "TW") addResource(RES_TIMEWINDOWS);
-                else if (res_type == "NODELIM") addResource(RES_NODELIM);
-                readNextLine(f, line, tokens, key);
-            }
-        }
-        else if (key == "RES_BOUND") {
-            readNextLine(f, line, tokens, key);
-
-            //Read lower bound and upperbound for each resource
-            while (key != "END") {
-                res_id = tokens[0].at(1) - '0';
-                lb = std::stoi(tokens[1]);
-                ub = std::stoi(tokens[2]);
-                if (res_id == 0 and Parameters::getCriticalUB() != -1)
-                    ub = Parameters::getCriticalUB();
-                resources[res_id]->setBounds(lb, ub);
-                readNextLine(f, line, tokens, key);
-            }
-        }
-        else if (key == "NODE_DATA") {
-            //Read node data: for each node i, read coordinates (x, y), cost and resource consumption
-            readNextLine(f, line, tokens, key);
-            auto header = tokens;
-            if(std::find(header.begin(), header.end(), "x") != header.end())
-                network.initCoord();
-            readNextLine(f, line, tokens, key);
-            while (key != "END") {
-                i = std::stoi(tokens[0]);
-                for (int index = 1; index < header.size(); index++) {
-                    data_type = header[index];
-                    if (data_type == "x") {
-                        xval = std::stoi(tokens[index++]);
-                        yval = std::stoi(tokens[index]);
-                        network.setxy(i, xval, yval);
-                    }
-                    else if (data_type == "COST") {
-                        cost = std::stoi(tokens[index]);
-                        objective->setNodeCost(i, cost);
-                    }
-                    else {
-                        res_id = data_type.at(1) - '0';
-                        consumption = std::stoi(tokens[index]);
-                        resources[res_id]->setNodeCost(i, consumption);
-                    }
-                }
-                readNextLine(f, line, tokens, key);
-            }
-        }
-        else if (key == "ARC_DATA") {
-            //Read node data: for each arc i-j, read coordinates (x, y), costs and resource consumption
-            //Add arcs j-i if the graph is not directed
-            //If the origin node is duplicated, add arcs for the destination
-
-            readNextLine(f, line, tokens, key);
-            auto header = tokens;
-            readNextLine(f, line, tokens, key);
-
-            while (key != "END") {
-                i = std::stoi(tokens[0]);
-                j = std::stoi(tokens[1]);
-
-                //Add an arc to the network
-                network.setArc(i, j);
-                n_arcs++;
-
-                if (not directed) {
-                    network.setArc(j, i);
-                    n_arcs++;
-                }
-
-                if (use_depot and (i == origin or j == origin)) {
-                    di = i == origin ? destination : i;
-                    dj = j == origin ? destination : j;
-
-                    network.setArc(di, dj);
-                    n_arcs++;
-
-                    if (not directed) {
-                        network.setArc(dj, di);
-                        n_arcs++;
-                    }
-                }
-
-                for (int index = 2; index < header.size(); index++) {
-                    data_type = header[index];
-
-                    if (data_type == "COST") {
-                        cost = std::stoi(tokens[index]);
-
-                        objective->setArcCost(i, j, cost);
-                        if (not directed)
-                            objective->setArcCost(j, i, cost);
-
-                        if (use_depot and (i == origin or j == origin)) {
-                            objective->setArcCost(di, dj, cost);
-                            if (not directed)
-                                objective->setArcCost(dj, di, cost);
-                        }
-                    }
-                    else {
-                        res_id = data_type.at(1) - '0';
-                        consumption = std::stoi(tokens[index]);
-                        resources[res_id]->setArcCost(i, j, consumption);
-
-                        if (not directed)
-                            resources[res_id]->setArcCost(j, i, consumption);
-
-                        if (use_depot and (i == origin or j == origin)) {
-                            resources[res_id]->setArcCost(di, dj, consumption);
-
-                            if (not directed)
-                                resources[res_id]->setArcCost(dj, di, consumption);
-                        }
-                    }
-                }
-                readNextLine(f, line, tokens, key);
-            }
-        }
-        else if (key == "RES_NODE_BOUND") {
-            //For each node i, add lower and upper bound for a given resource
-            readNextLine(f, line, tokens, key);
-
-            while (key != "END") {
-                res_id = tokens[0].at(1) - '0';
-                i = std::stoi(tokens[1]);
-                lb = std::stoi(tokens[2]);
-                ub = std::stoi(tokens[3]);
-                resources[res_id]->setNodeBound(n_nodes, i, lb, ub);
-                readNextLine(f, line, tokens, key);
-            }
-        }
-        else if (key == "COORD") {
-            //For each node i, read coordinates (x,y)
-            readNextLine(f, line, tokens, key);
-            network.initCoord();
-            int xval, yval;
-
-            while (key != "END") {
-                i = std::stoi(tokens[0]);
-                xval = std::stoi(tokens[1]);
-                yval = std::stoi(tokens[2]);
-                network.setxy(i, xval, yval);
-                if(use_depot and i == origin)
-                    network.setxy(destination, xval, yval);
-                readNextLine(f, line, tokens, key);
-            }
-        }
-    }
-    f.close();
-
-    if(Parameters::getVerbosity() >= 3)
-        std::cout<<"Reading problem data complete"<<std::endl;
-
-    //Initialize resources
-    for(auto r: resources)
-        r->init(origin, destination);
-
-    printProblem();
-    collectData();
-}
-
 //Read and initialize data (extended reader)
 void Problem::readProblem(std::string file_name) {
     std::ifstream f;
-    std::string line, key, label, separator, res_name, res_type;
+    std::string line, key, label, separator, res_name, res_type, coord_distance_id;
     std::vector<std::string> tokens;
-    int res_id, i, j, cluster_id;
-    bool symmetric = false, use_depot = false;
-    int lb, ub, cost, consumption;
+    int res_id, i, j;
+    int lb, ub, consumption;
+    double cost;
+    int coord_distance_type = DIST_NONE;
 
-    directed = true;
-
-    if(Parameters::getVerbosity() >= 0)
-        std::cout<<"Reading problem data: "<<file_name<<std::endl;
-
-    //If present, override origin and destination with console input
-    if(Parameters::getOrigin() != -1)
-        this->origin = Parameters::getOrigin();
-
-    if(Parameters::getDestination() != -1)
-        this->destination = Parameters::getDestination();
+    Logger::log("Reading problem data: " + file_name);
 
     //Read from file
     f.open(file_name.c_str());
 
     while(readNextLine(f, line, tokens, key)) {
         //Read initialization data
-        if (key == "NAME") this->name = tokens[2];
-        else if (key == "SIZE") this->n_nodes = std::stoi(tokens[2]);
-        //else if (key == "CLUSTERS") this->n_clusters = std::stoi(tokens[2]);
-        else if (key == "DIRECTED") directed = std::stoi(tokens[2]);
-        else if (key == "CYCLIC") this->cycles = std::stoi(tokens[2]);
-        else if (key == "SYMMETRIC") symmetric = std::stoi(tokens[2]);
-        else if (key == "COMPLETE") {
-            this->complete = std::stoi(tokens[2]);
-            collector.collect("complete", complete);
+        if (key == "NAME") setName(tokens[2]);
+        else if (key == "SIZE"){
+            setNumNodes(std::stoi(tokens[2]));
+            //If present, override origin and destination with console input
+            if(Parameters::getOrigin() != -1)
+                setOrigin(Parameters::getOrigin());
+
+            if(Parameters::getDestination() != -1)
+                setDestination(Parameters::getDestination());
         }
-        else if (key == "RESOURCES") this->n_res = std::stoi(tokens[2]);
+        else if (key == "DIRECTED") setDirected(std::stoi(tokens[2]));
+        else if (key == "CYCLIC") setCyclic(std::stoi(tokens[2]));
+        else if (key == "SYMMETRIC") setSymmetric(std::stoi(tokens[2]));
         else if (key == "ORIGIN") {
             if(Parameters::getOrigin() == -1)
-                this->origin = std::stoi(tokens[2]);
+                setOrigin(std::stoi(tokens[2]));
         }
         else if (key == "DESTINATION") {
             if(Parameters::getDestination() == -1)
-                this->destination = std::stoi(tokens[2]);
+                setDestination(std::stoi(tokens[2]));
         }
         else if (key == "RES_TYPE") {
-            //Duplicate origin node if necessary
-            if (origin == destination)
-                use_depot = true;
-
             //Initialize problem
-            initProblem();
-
+            init();
             readNextLine(f, line, tokens, key);
-
             while(key != "END") {
                 //Initialize resource objects
-                res_type = tokens[1];
-                if (res_type == "CAP") addResource(RES_CAPACITY);
-                else if (res_type == "TIME") addResource(RES_TIME);
-                else if (res_type == "TW") addResource(RES_TIMEWINDOWS);
-                else if (res_type == "NODELIM") addResource(RES_NODELIM);
+                addResource(tokens[1]);
                 readNextLine(f, line, tokens, key);
             }
         }
@@ -450,13 +218,12 @@ void Problem::readProblem(std::string file_name) {
                 res_id = std::stoi(tokens[0]);
                 lb = std::stoi(tokens[1]);
                 ub = std::stoi(tokens[2]);
-                if(res_id == 0 and Parameters::getCriticalUB() != -1)
-                    ub = Parameters::getCriticalUB();
-                resources[res_id]->setBounds(lb, ub);
+                if(Parameters::getCriticalUB(res_id) != -1)
+                    ub = Parameters::getCriticalUB(res_id);
+                setResBounds(res_id, lb, ub);
                 readNextLine(f, line, tokens, key);
             }
         }
-
 
         else if (key == "RES_NODE_BOUND") {
             //For each node i, add lower and upper bound for a given resource
@@ -467,7 +234,7 @@ void Problem::readProblem(std::string file_name) {
                 i = std::stoi(tokens[1]);
                 lb = std::stoi(tokens[2]);
                 ub = std::stoi(tokens[3]);
-                resources[res_id]->setNodeBound(n_nodes, i, lb, ub);
+                setResNodeBound(res_id, i, lb, ub);
                 readNextLine(f, line, tokens, key);
             }
         }
@@ -479,32 +246,9 @@ void Problem::readProblem(std::string file_name) {
             while (key != "END") {
                 i = std::stoi(tokens[0]);
                 j = std::stoi(tokens[1]);
-                cost = std::stoi(tokens[2]);
-                objective->setArcCost(i, j, cost);
-
-                //Add an arc to the network
-                network.setArc(i, j);
-                n_arcs++;
-
-                if (!directed) {
-                    objective->setArcCost(j, i, cost);
-                    network.setArc(j, i);
-                    n_arcs++;
-                }
-
-                if (use_depot and (i == origin or j == origin)) {
-                    i == origin ? i = destination : j = destination;
-                    objective->setArcCost(i, j, cost);
-                    network.setArc(i, j);
-                    n_arcs++;
-
-                    if (!directed) {
-                        objective->setArcCost(j, i, cost);
-                        network.setArc(j, i);
-                        n_arcs++;
-                    }
-                }
-
+                cost = std::stod(tokens[2]);
+                addArc(i, j);
+                setArcCost(i, j, cost);
                 readNextLine(f, line, tokens, key);
             }
         }
@@ -514,12 +258,8 @@ void Problem::readProblem(std::string file_name) {
             readNextLine(f, line, tokens, key);
             while (key != "END") {
                 i = std::stoi(tokens[0]);
-                cost = std::stoi(tokens[1]);
-                objective->setNodeCost(i, cost);
-
-                if (use_depot and i == origin)
-                    objective->setNodeCost(destination, 0);
-
+                cost = std::stod(tokens[1]);
+                setNodeCost(i, cost);
                 readNextLine(f, line, tokens, key);
             }
         }
@@ -533,18 +273,7 @@ void Problem::readProblem(std::string file_name) {
                 i = std::stoi(tokens[1]);
                 j = std::stoi(tokens[2]);
                 consumption = std::stoi(tokens[3]);
-                resources[res_id]->setArcCost(i, j, consumption);
-
-                if (!directed)
-                    resources[res_id]->setArcCost(j, i, consumption);
-
-                if (use_depot and (i == origin or j == origin)) {
-                    i == origin ? i = destination : j = destination;
-                    resources[res_id]->setArcCost(i, j, consumption);
-
-                    if (!directed)
-                        resources[res_id]->setArcCost(j, i, consumption);
-                }
+                setResArcConsumption(res_id, i, j, consumption);
                 readNextLine(f, line, tokens, key);
             }
         }
@@ -557,11 +286,19 @@ void Problem::readProblem(std::string file_name) {
                 res_id = std::stoi(tokens[0]);
                 i = std::stoi(tokens[1]);
                 consumption = std::stoi(tokens[2]);
-                resources[res_id]->setNodeCost(i, consumption);
+                setResNodeConsumption(res_id, i, consumption);
+                readNextLine(f, line, tokens, key);
+            }
+        }
 
-                if (use_depot and i == origin)
-                    resources[res_id]->setNodeCost(destination, 0);
+        else if (key == "COORD_DISTANCE_TYPE") {
+            //Read distance type (2d, Geographic, none)
+            readNextLine(f, line, tokens, key);
 
+            while (key != "END") {
+                coord_distance_id = tokens[0];
+                coord_distance_type = getCoordDistanceType(tokens[1]);
+                setCoordinatesType(coord_distance_id, coord_distance_type);
                 readNextLine(f, line, tokens, key);
             }
         }
@@ -569,35 +306,64 @@ void Problem::readProblem(std::string file_name) {
         else if (key == "COORD") {
             //For each node i, read coordinates (x,y)
             readNextLine(f, line, tokens, key);
-            network.initCoord();
-            int xval, yval;
-
             while (key != "END") {
                 i = std::stoi(tokens[0]);
-                xval = std::stoi(tokens[1]);
-                yval = std::stoi(tokens[2]);
-                network.setxy(i, xval, yval);
-                if(use_depot and i == origin)
-                    network.setxy(destination, xval, yval);
+                int xval = std::stoi(tokens[1]);
+                int yval = std::stoi(tokens[2]);
+                setCoordinates(i, xval, yval);
                 readNextLine(f, line, tokens, key);
             }
         }
-
     }
 
     f.close();
 
-    if(Parameters::getVerbosity() >= 0){
-        std::cout<<"Reading problem data complete"<<std::endl;
-        std::cout<<"--------------------"<<std::endl;
-    }
+    Logger::log("Reading problem data complete");
+    Logger::divider();
 
     //Initialize resources
+    build();
+}
+
+void Problem::scaleCosts() {
+    double max_abs = objective->getMaxAbsValue();
+    int requested_decimal_digits = std::max(0, Parameters::getDecimalDigits());
+    if (requested_decimal_digits != Parameters::getDecimalDigits())
+        Logger::warn("problem/decimal_digits must be non-negative. Using 0.");
+
+    int integer_digits = 1;
+    if (max_abs >= 1.0) {
+        int temp = (int) max_abs;
+        while (temp >= 10) {
+            temp /= 10;
+            integer_digits++;
+        }
+    }
+    int available = std::max(0, MAX_COST_DIGITS - integer_digits);
+
+    if (integer_digits > MAX_COST_DIGITS)
+        Logger::error("Max cost value requires " + std::to_string(integer_digits) +
+                      " digits, exceeding MAX_COST_DIGITS (" + std::to_string(MAX_COST_DIGITS) + ").");
+
+    int scale_digits = std::min(requested_decimal_digits, available);
+    if (requested_decimal_digits > available)
+        Logger::warn("Requested " + std::to_string(requested_decimal_digits) + " decimal digits but only " +
+                     std::to_string(available) + " available (MAX_COST_DIGITS=" +
+                     std::to_string(MAX_COST_DIGITS) + ", integer digits=" +
+                     std::to_string(integer_digits) + "). Scaling with " +
+                     std::to_string(scale_digits) + ".");
+
+    cost_scale_factor = std::pow(10.0, scale_digits);
+    objective->applyScale(cost_scale_factor);
+}
+
+void Problem::build(){
     for(auto r: resources)
         r->init(origin, destination);
-
-    printProblem();
+    n_res = resources.size();
+    build_done = true;
     collectData();
+    printProblem();
 }
 
 //Support methods for read procedure
@@ -616,22 +382,312 @@ bool Problem::readNextLine(std::ifstream & f, std::string & line, std::vector<st
     return false;
 }
 
+
+/** Construction interface **/
+int Problem::setNumNodes(int n) {
+    if(n <= 1) {
+        Logger::error("Number of nodes must be greater than 1");
+        return RETURN_ERROR;
+    }
+    n_nodes = n;
+    Logger::debug("Set number of nodes: ", n);
+    return RETURN_OK;
+}
+
+int Problem::setOrigin(int origin) {
+    if (not nodeExists(origin)) return RETURN_ERROR;
+    this->origin = origin;
+    Logger::debug("Set origin: ", origin);
+    return RETURN_OK;
+}
+
+int Problem::setDestination(int destination) {
+    if (not nodeExists(destination)) return RETURN_ERROR;
+    this->destination = destination;
+    Logger::debug("Set destination: ", destination);
+    return RETURN_OK;
+}
+
+int Problem::setDirected(bool directed) {
+    this->directed = directed;
+    directed_set = true;
+    Logger::debug("Set directed: ", directed);
+    return RETURN_OK;
+}
+
+int Problem::setSymmetric(bool symmetric) {
+    this->symmetric = symmetric;
+    symmetric_set = true;
+    Logger::debug("Set symmetric: ", symmetric);
+    return RETURN_OK;
+}
+
+int Problem::setCyclic(bool cyclic) {
+    this->cycles = cyclic;
+    cyclic_set = true;
+    Logger::debug("Set cyclic: ", cyclic);
+    return RETURN_OK;
+}
+
+int Problem::setResBounds(int res_id, int lb, int ub) {
+    if (not resExists(res_id)) return RETURN_ERROR;
+
+    if(lb > ub) {
+        Logger::error("Resource lower bound " + std::to_string(lb) + " exceeds upper bound " + std::to_string(ub) + " for res " + std::to_string(res_id));
+        return RETURN_ERROR;
+    }
+    resources[res_id]->setBounds(lb, ub);
+    Logger::debug("Set bounds [", lb, ", ", ub, "] on resource ", resources[res_id]->getName());
+    return RETURN_OK;
+}
+
+int Problem::setResNodeBound(int res_id, int node, int lb, int ub) {
+    if (not resExists(res_id)) return RETURN_ERROR;
+    if (not nodeExists(node)) return RETURN_ERROR;
+
+    if(lb > ub) {
+        Logger::error("Resource lower bound " + std::to_string(lb) + " exceeds upper bound " + std::to_string(ub) + " for res " + std::to_string(res_id) + "on node " + std::to_string(node));
+        return RETURN_ERROR;
+    }
+    resources[res_id]->setNodeBound(n_nodes, node, lb, ub);
+    if (duplicate_depot and node == origin){
+        if (lb == 0 and ub == 0){
+            Logger::warn("Destination TW upper bound is 0. Changing it to MAX_INT.");
+            ub = UNKNOWN;
+        }
+        resources[res_id]->setNodeBound(n_nodes, destination, lb, ub);
+    }
+    Logger::debug("Set node bound [", lb, ", ", ub, "] at node ", node, " on resource ", resources[res_id]->getName());
+    return RETURN_OK;
+}
+
+
+void Problem::setCoordinates(int i, int x, int y) {
+    network.setxy(i, x, y);
+    if(duplicate_depot and i == origin)
+        network.setxy(destination, x, y);
+}
+
+void Problem::setCoordinatesType(std::string coord_distance_id, int coord_distance_type){
+    if(coord_distance_id != "OBJ"){
+        int res_id = std::stoi(coord_distance_id);
+        resources[res_id]->getData()->setCoordDistanceType(coord_distance_type);
+    }
+    else
+        objective->getData()->setCoordDistanceType(coord_distance_type);
+}
+
+int Problem::setBounds(double lb, double ub) {
+    if(lb > ub) {
+        Logger::error("Objective lower bound " + std::to_string(lb) + " exceeds upper bound " + std::to_string(ub) + " for objective ");
+        return RETURN_ERROR;
+    }
+    objective->setBoundsDouble(lb, ub);
+    Logger::debug("Set objective bounds [", lb, ", ", ub, "]");
+    return RETURN_OK;
+}
+
+bool Problem::nodeExists(int node) const {
+    if (node < 0 or node >= n_nodes) {
+        Logger::error("Node " + std::to_string(node) + " does not exist");
+        return false;
+    }
+    return true;
+}
+
+bool Problem::resExists(int res_id) const{
+    if(res_id < 0 or res_id >= resources.size()) {
+        Logger::error("Resource not found: " + std::to_string(res_id));
+        return false;
+    }
+    return true;
+}
+
+bool Problem::objExists() const {
+    if(not objective) {
+        Logger::error("Objective not initialized.");
+        return false;
+    }
+    return true;
+}
+
+int Problem::addArc(int i, int j){
+    if (not nodeExists(i)) return RETURN_ERROR;
+    if (not nodeExists(j)) return RETURN_ERROR;
+
+    network.setArc(i, j);
+    n_arcs++;
+    if (not directed){
+        network.setArc(j, i);
+        n_arcs++;
+    }
+
+    if (not build_done and duplicate_depot and (i == origin or j == origin)) {
+        i == origin ? i = destination : j = destination;
+        network.setArc(i, j);
+        n_arcs++;
+
+        if (not directed) {
+            network.setArc(j, i);
+            n_arcs++;
+        }
+    }
+    Logger::debug("Added arc (", i, ", ", j);
+    return RETURN_OK;
+}
+
+int Problem::setArcCost(int i, int j, double cost) {
+    if (not nodeExists(i)) return RETURN_ERROR;
+    if (not nodeExists(j)) return RETURN_ERROR;
+
+    objective->setArcCostDouble(i, j, cost);
+
+    //Create backward arc, if not directed
+    if(not directed)
+        objective->setArcCostDouble(j, i, cost);
+
+    //If depot is used, duplicate arcs to destination
+    if (not build_done and duplicate_depot and (i == origin or j == origin)) {
+        i == origin ? i = destination : j = destination;
+        objective->setArcCostDouble(i, j, cost);
+
+        if (not directed)
+            objective->setArcCostDouble(j, i, cost);
+    }
+
+    Logger::debug("Set arc (", i, ", ", j, ") with cost ", cost);
+    return RETURN_OK;
+}
+
+
+int Problem::setNodeCost(int i, double cost) {
+    if (not nodeExists(i)) return RETURN_ERROR;
+
+    //If depot is used, split cost between origin and duplicated destination
+    if (not build_done and duplicate_depot and i == origin){
+        double depot_cost = cost / 2.0;
+        objective->setNodeCostDouble(destination, depot_cost);
+        cost -= depot_cost;
+    }
+
+    objective->setNodeCostDouble(i, cost);
+
+    Logger::debug("Set node ", i, " cost ", cost);
+    return RETURN_OK;
+}
+
+//Passing a square matrix (needs testing)
+void Problem::setArcMatrixCost(std::vector<std::vector<double>> costs) {
+    for (int r = 0; r < (int)costs.size(); ++r)
+        for (int c = 0; c < (int)costs[r].size(); ++c)
+            objective->setArcCostDouble(r, c, costs[r][c]);
+
+    //If depot is used, duplicate origin row and column to destination
+    if (not build_done and duplicate_depot)
+        for (int i = 0; i < (int)costs.size(); ++i) {
+            objective->setArcCostDouble(destination, i, costs[origin][i]);  // row copy
+            objective->setArcCostDouble(i, destination, costs[i][origin]);  // column copy
+        }
+}
+
+int Problem::setNodeCosts(std::vector<double> costs) {
+
+    if (not build_done and duplicate_depot)
+        costs.emplace_back(costs[origin]);
+
+    if ((int)costs.size() < n_nodes){
+        Logger::error("Cost vector has not enough nodes");
+        return RETURN_ERROR;
+    }
+    for (int i = 0; i < n_nodes; i++)
+        objective->setNodeCostDouble(i, costs[i]);
+
+    Logger::debug("Cost set for every node");
+    return RETURN_OK;
+}
+
+int Problem::setResArcConsumption(int res_id, int i, int j, int cost) {
+    if (not resExists(res_id)) return RETURN_ERROR;
+    if (not nodeExists(i)) return RETURN_ERROR;
+    if (not nodeExists(j)) return RETURN_ERROR;
+
+    resources[res_id]->setArcCost(i, j, cost);
+
+    //Add backward arc consumption, if not directed
+    if(not directed)
+        resources[res_id]->setArcCost(j, i, cost);
+
+    //If depot is used, duplicate arc consumption to destination
+    if (not build_done and duplicate_depot and (i == origin or j == origin)) {
+        i == origin ? i = destination : j = destination;
+        resources[res_id]->setArcCost(i, j, cost);
+
+        if (not directed)
+            resources[res_id]->setArcCost(j, i, cost);
+    }
+
+    Logger::debug("Set arc (", i, ", ", j, ") consumption ", cost, " on resource ", resources[res_id]->getName());
+    return RETURN_OK;
+}
+
+int Problem::setResNodeConsumption(int res_id, int i, int cost){
+    if (not resExists(res_id)) return RETURN_ERROR;
+    if (not nodeExists(i)) return RETURN_ERROR;
+
+    if (not build_done and duplicate_depot and i == origin){
+        int depot_cost = cost/2;
+        cost -= depot_cost;
+        resources[res_id]->setNodeCost(destination, depot_cost);
+    }
+    resources[res_id]->setNodeCost(i, cost);
+
+    Logger::debug("Set node ", i, " consumption ", cost, " on resource ", resources[res_id]->getName());
+    return RETURN_OK;
+}
+
+
+bool Problem::validate() {
+    bool valid = true;
+
+    if (not init_done){
+        Logger::error("Init not done");
+        valid = false;
+    }
+
+    if (not build_done){
+        Logger::error("Build not done");
+        valid = false;
+    }
+
+    if(n_arcs == 0) {
+        Logger::error("No arcs defined");
+        valid = false;
+    }
+
+    return valid;
+}
+
 /** Output management **/
 //Prints problem Data
-void Problem::printProblem(){
-    if(Parameters::getVerbosity() < 1)
-        return;
+void Problem::printProblem() {
+    if (Parameters::getVerbosity() < VERB_STD) return;
+    using namespace Logger;
 
-    std::cout<< "Problem: " << name << std::endl;
-    std::cout<< "Number of resources: " << n_res << std::endl;
-    std::cout<< "Number of nodes: " << getNumNodes() << std::endl;
-    std::cout<<"Origin: " << this->origin << std::endl;
-    std::cout<<"Destination: " << this->destination << std::endl;
-    std::cout<<"Upperbounds: ";
-    for(auto & r: resources)
-        std::cout << r->getUB()<< " ";
-    std::cout<<std::endl;
-    std::cout << "--------------------" << std::endl;
+    log("[ Problem ]", VERB_STD, BOLD);
+    log("Name", name);
+    log("Nodes", std::to_string(getNumNodes()));
+    log("Resources", std::to_string(n_res));
+
+    log("Origin", std::to_string(origin));
+    log("Destination", std::to_string(destination));
+
+    // Resource bounds
+    std::string ub_values;
+    for (auto &r : resources)
+        ub_values += std::to_string(r->getUB()) + " ";
+    log("Resource Upper Bounds", ub_values);
+
+    divider();
 }
 
 /** Data collection **/
@@ -645,7 +701,6 @@ void Problem::initDataCollection(){
     collector.init("nodes", 0);
     collector.init("arcs", 0);
     collector.init("arcs_per_node", 0.0);
-    collector.init("complete", -1);
     collector.init("symmetric", -1);
     collector.init("directed", -1);
     collector.init("cyclic", -1);
@@ -653,7 +708,6 @@ void Problem::initDataCollection(){
     collector.init("nres_complex", 0);
     collector.init("origin", -1);
     collector.init("destination", -1);
-    collector.init("obj_init", 0);
     collector.init("obj_lb", 0);
     collector.init("obj_ub", 0);
 }
@@ -670,13 +724,11 @@ void Problem::collectData(){
     collector.collect("nres", n_res);
     collector.collect("origin", origin);
     collector.collect("destination", destination);
-    collector.collect("obj_init", getObj()->getInitValue());
     collector.collect("obj_lb", getObj()->getLB());
     collector.collect("obj_ub", getObj()->getUB());
     for(int i = 0; i < resources.size(); i++) {
         auto res = getRes(i);
         std::string tag = "r" + std::to_string(i) + "_";
-        collector.init(tag+"init", res->getInitValue());
         collector.init(tag+"lb", res->getLB());
         collector.init(tag+"ub", res->getUB());
     }

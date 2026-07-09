@@ -1,4 +1,5 @@
 #include "label.h"
+#include "utils/logger.h"
 
 /** Label management **/
 //Constructors and destructors
@@ -25,8 +26,6 @@ void Label::updateLabel(int node, Label* predecessor){
 
 /** Operators **/
 void Label::operator= (const Label& obj)  {
-    if(this == &obj) return;
-
     node = obj.node;
     direction = obj.direction;
     predecessor = obj.predecessor;
@@ -50,19 +49,21 @@ bool Label::operator!= (const Label& obj) {
 
 /** Output management **/
 void Label::printLabel() {
-    if(Parameters::getVerbosity() < 0)
-        return;
+    if(Parameters::getVerbosity() < 0) return;
 
-    std::cout<<"------------"<<std::endl;
-    std::cout<<"Node: "<< node << std::endl;
+    Logger::log("[ Label ]", VERB_STD);
+    Logger::log("Node: ", node);
     if(predecessor)
-        std::cout<<"Predecessor: "<< predecessor->getNode() << std::endl;
-    std::cout<<"Direction: " << direction << std::endl;
-    std::cout<<"Objective: " << objective << std::endl;
-    std::cout<<"Resource snapshot: " << std::endl;
+        Logger::log("Predecessor", std::to_string(predecessor->getNode()));
+    Logger::log("Direction", std::to_string(direction));
+    Logger::log("Objective", std::to_string(objective));
+
+    std::string snap;
     for(auto& s: snapshot)
-        std::cout << s << " "  << std::endl;
-    std::cout<<"------------"<<std::endl;
+        snap += std::to_string(s) + " ";
+    Logger::log("Resource snapshot", snap);
+
+    Logger::divider();
 }
 
 void Label::printPredecessors(){

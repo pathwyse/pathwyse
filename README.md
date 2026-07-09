@@ -1,86 +1,142 @@
-# PathWyse Community
+<div align="center">
 
-PathWyse is a dual licensed C++ library designed to provide state-of-the-art algorithms and data structures for modeling and solving a variety of standard resource constrained shortest path problems (RCSPPs). The library can be compiled and used as a standalone solver or can be imported in custom projects through C++ or Python interfaces. Furthermore, algorithms and problem properties can be extended and customize to provide ad-hoc solutions.
+<h1>PathWyse</h1>
 
-The library is introduced in this paper: https://doi.org/10.1080/10556788.2023.2296978
+![C++](https://img.shields.io/badge/C%2B%2B-20%2B-4584b6?logo=c%2B%2B&logoColor=white)
+![Python](https://img.shields.io/badge/Python-3.13%2B-4584b6?logo=python&logoColor=white)
+![License](https://img.shields.io/badge/License-GPLv3-4584b6?logo=&logoColor=white)
 
-Otherwise, an earlier version is described in this technical report: https://doi.org/10.48550/arXiv.2306.08622
 
-We propose two versions of the library, with a dual-license scheme. See the license section for more details.
+**A C++ and Python framework to model and solve Resource Constrained Shortest Path Problems.**
 
-PathWyse Community, this repository, represents the core of the library and adheres to an open source license. 
+</div>
 
-PathWyse Enterprise, a version with additional and experimental features, along with more extensive support, can be provided upon request, through a commercial license for non-open source projects.
-Additionally, PathWyse Enterprise binaries can be provided free-to-use for academic purposes. 
 
-## Supported Problems
-PathWyse supports resource constrained problems with single or multiple monotone resources. It provides specialized algorithms and techniques for both cyclic and acyclic networks.
 
-Version 0.1 implements the following resources: capacity, time, node limit and time windows.
+---
 
-Additionally, custom resources can be specified by extending the Resource Class.
+PathWyse is a project designed to address Resource Constrained Shortest Path Problems (RCSPP), combining state-of-the-art exact algorithms with a modular architecture for rapid experimentation and integration. It is particularly suited for problems arising as pricing subproblems in column generation, as well as routing and scheduling applications with multiple constraints. 
 
-## Main Techniques
-PathWyse includes the following techniques and features:
+The library can be used both as a high-performance C++ solver for real-world applications and as a research platform for developing and testing new algorithmic ideas.
 
-- **Bi-directional search:** Dynamic programming labeling algorithms are implemented in both mono-directional and bi-directional [Righini and Salani, 2006] fashion; 
-- **Relaxation schemes:** Decremental State Space Relaxation (DSSR) [Righini and Salani, 2008], NG-path relaxations (NG) [Baldacci et al., 2011] and hybridizations [Martinelli et al., 2014] are included to tackle the Elementary RCSPP;
-- **Dynamic half-way point:** The budget of the critical resource is automatically adjusted in bidirectional algorithms, similarly to [Sadykov et al., 2020]
-- **Multiple candidate and join procedure selection:** Multiple methods to select a candidate to extend in labeling algorithms. Different join procedures are available for bidirectional search;
-- **A\*-based algorithm:** a custom implementation of the A* algorithm proposed by [Ahmadi et al. 2021] is provided for single resource acyclic problems.
+Pathwyse provides an interactive mode in Python, along with Python interfaces for flexible usage.
 
-PathWyse also supports simple heuristics, and features data collection tools.
+The library is described in the paper: https://doi.org/10.1080/10556788.2023.2296978  
+An earlier version is available as a technical report: https://doi.org/10.48550/arXiv.2306.08622
 
-## Getting started
-To start using PathWyse as a solver, please compile the project, by following the instructions provided [here](documentation/tutorials/INSTALL.md).
 
-Then, you can run the standalone version in a terminal by providing an instance file:
+PathWyse is distributed under a dual licensing scheme: this repository contains the open-source version.
 
-```
-./bin/pathwyse path-to-instance
-```
+---
 
-For example:
+## A quick look
+
+Once compiled, PathWyse can be used immediately as a standalone solver:
 
 ```
 ./bin/pathwyse instances/toy.txt
 ```
 
-The instance file format is specified [here](documentation/tutorials/INSTANCE.md).
+Example output:
 
-A default setting file "pathwyse.set" is provided to change the library configuration. Full details on all the available settings can be found [here](documentation/tutorials/PARAMETERS.md).
+```
+[ Solution ]
+  Solution Status                 : Optimal
+  Obj                             : -10435
+  Tour Length                     : 4
+  Tour                            : 0 2 1 4 
+  Consumption                     : 9 
+```
 
-Please refer to [this](documentation/tutorials/PYTHON.md) guide to import PathWyse library in your Python project instead.
+---
+## For industries
 
-Additional information about launch parameters and example instances can be found in [extras](documentation/tutorials/EXTRAS.md).
+PathWyse can be used as a high-performance solver for constrained shortest path problems. It can be executed from the command line, embedded in C++ applications, or accessed through a Python interface.
+
+PathWyse provides practitioners with fast, reliable exact solutions to complex constrained shortest path problems, helping to reduce planning time, resource utilization, and, in general, support decision-making in real-world transportation, logistic and scheduling tasks. Typical applications also include solving pricing subproblems in column generation for vehicle routing, crew rostering, path-based scheduling and many other problems.
+
+The library includes configuration files for controlling algorithmic behavior and collecting performance data, so it can be integrated into larger pipelines without modifying the source code.
+
+---
+
+## For academia
+
+PathWyse is also designed as a research-oriented framework where algorithmic components are explicit and configurable. The goal is to allow experimentation without reimplementing the full machinery behind labeling algorithms.
+
+The library provides implementations of bidirectional dynamic programming, DSSR and NG-path relaxations, and their hybridizations, together with mechanisms for label candidate selection, dominance, and join procedures.
+
+Its internal structure is modular: resources, labels, and extension functions can be customized, and new algorithmic variants can be introduced without modifying the entire codebase. This makes the library suitable for studying new problems, designing dominance rules and relaxation schemes, or formulating pricing subproblems in column generation.
+
+---
+
+## Supported problems
+
+PathWyse focuses on resource constrained shortest path problems with one or more monotone resources. It supports acyclic networks and includes specialized techniques for elementary variants on cyclic networks through relaxation schemes. 
+
+The current version includes support for common resources such as capacity, time, node limits, and time windows. These can be combined to model a variety of problems, including routing and scheduling with cumulative constraints, and pricing subproblems in column generation.
+
+
+The framework is fully extensible: new types of resources can be implemented by extending the Resource class, making it possible to model custom constraints for a wide range of practical and research problems.
+
+---
+
+## Main techniques
+
+PathWyse includes the following techniques and features:
+
+- **Bi-directional search:** Dynamic programming labeling algorithms are implemented in both mono-directional and bi-directional [Righini and Salani, 2006] fashion;
+- **Relaxation schemes:** Decremental State Space Relaxation (DSSR) [Righini and Salani, 2008], NG-path relaxations (NG) [Baldacci et al., 2011] and hybridizations [Martinelli et al., 2014] are included to tackle the Elementary RCSPP;
+- **Dynamic half-way point:** The budget of the critical resource is automatically adjusted in bidirectional algorithms, similarly to [Sadykov et al., 2020]
+- **Candidate and join strategies:** multiple methods for selecting candidates and performing join operations in labeling algorithms.
+- **A\*-based algorithm:** a custom implementation of the A* algorithm proposed by [Ahmadi et al. 2021] is provided for single resource acyclic problems;
+
+PathWyse also supports simple heuristics, bucket-based label organization (PWBucket), and features data collection tools.
+
+---
+
+## Getting started
+
+To compile the project, follow the instructions in: [Installation](https://pathwyse.github.io/pathwyse/documentation/INSTALL/)
+
+After compilation, instances can be solved from the command line:
+
+```
+./bin/pathwyse path-to-instance
+```
+
+The instance format is described in: [Instance Format](https://pathwyse.github.io/pathwyse/documentation/INSTANCE/)
+
+The file `pathwyse.set` contains the main configuration parameters. 
+A complete description of the available options is provided in: [Parameters](https://pathwyse.github.io/pathwyse/documentation/PARAMETERS_TABLE/)
+
+Additional information about launch parameters and example instances can be found in [Extras](https://pathwyse.github.io/pathwyse/documentation/EXTRAS/).
+
+Instructions for using PathWyse from Python are available in: [Python](https://pathwyse.github.io/pathwyse/python/PYTHON/)
+
+---
 
 ## Documentation
-Additional documentation for the library is provided in the documentation folder. See documentation.html. 
 
-Please, refer to the Solver class for details of the main interfaces of the library.
+The full documentation, including installation guides, API references, and tutorials, is available at: https://pathwyse.github.io/pathwyse/
+
+The Solver class provides the main interface for interacting with the library programmatically.
+
+---
 
 ## License
-We provide Pathwyse under a dual licensing scheme. 
 
-PathWyse Community is open source, and adheres to the GNU General Public License v3.0. Please, refer to the LICENSE file for full details.
+PathWyse is distributed under a dual licensing scheme.
 
-PathWyse Enterprise is instead provided upon request with a commercial license for non-open source projects. 
+This repository is open source and released under the GNU General Public License v3.0.
 
+The Enterprise version includes additional and experimental features, as well as extended support. It is available for academic collaborations and under a commercial license for non-open source projects. 
 
-Please contact pathwyse@supsi.ch for further inquiries.
+For further information, contact: pathwyse@supsi.ch
 
-## Version History
-
-
-##### PathWyse Community (Open Source)
-Version 0.1 - June 2024 - GitHub Repository
-
-##### PathWyse Enterprise (binaries free-to-use for academic projects)
-Version 1.0 - June 2024 - binaries, upon request (pathwyse@supsi.ch)
-
-##### PathWyse Enterprise (closed source, for non-open source projects)
-Version 1.0 - June 2024 - upon request (pathwyse@supsi.ch)
-
+---
 
 ## How to cite
-Salani, M., Basso, S., & Giuffrida, V. (2024). PathWyse: a flexible, open-source library for the resource constrained shortest path problem. Optimization Methods and Software, 1–23. https://doi.org/10.1080/10556788.2023.2296978
+
+Salani, M., Basso, S., & Giuffrida, V. (2024).  
+PathWyse: a flexible, open-source library for the resource constrained shortest path problem.  
+Optimization Methods and Software. https://doi.org/10.1080/10556788.2023.2296978

@@ -7,7 +7,7 @@ set(CMAKE_CXX_STANDARD 20)
 if (${CMAKE_SYSTEM_NAME} MATCHES "Windows")
 	set(CMAKE_CXX_FLAGS  "/O2 /w  /DNDEBUG")
 else()
-	set(CMAKE_CXX_FLAGS  "-O3 -w -pthread -DNDEBUG")
+	set(CMAKE_CXX_FLAGS  "-O3 -w -pthread -fopenmp -DNDEBUG")
 endif()
 
 #Project information
@@ -56,6 +56,11 @@ set(
         core/algorithms/dynamic_programming/PW_default/LM_default.h
         core/algorithms/dynamic_programming/PW_default/LM_default.cpp
 
+        core/algorithms/dynamic_programming/PW_bucket/PW_bucket.h
+        core/algorithms/dynamic_programming/PW_bucket/PW_bucket.cpp
+        core/algorithms/dynamic_programming/PW_bucket/LM_bucket.h
+        core/algorithms/dynamic_programming/PW_bucket/LM_bucket.cpp
+
         core/algorithms/dynamic_programming/PW_acyclic/PW_acyclic.h
         core/algorithms/dynamic_programming/PW_acyclic/PW_acyclic.cpp
         core/algorithms/dynamic_programming/PW_acyclic/LM_acyclic.h
@@ -68,7 +73,7 @@ set(
         core/utils/data_collector.cpp
         core/utils/param.h
         core/utils/param.cpp
-
+        core/utils/logger.h
 )
 
 add_library(pathwyse_core SHARED ${SOURCE_FILES_LIB})

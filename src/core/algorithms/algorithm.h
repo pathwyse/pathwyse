@@ -47,15 +47,22 @@ public:
 
     double getGlobalTime(){return collector.getGlobalTime();}
 
+
     //Solution
     Path* getBestSolution() {return best_solution_id >= 0 ? &solutions[best_solution_id] : nullptr;}
+    bool isBestSolutionElementary() {return getBestSolution() and getBestSolution()->isElementary();}
     void updateBestSolution(int id){best_solution_id = id;}
     std::vector<Path> & getSolutions() {return solutions;}
     void addSolution(Path & path);
     void buildPath(int objective, Label* forward_label, Label* backward_label = nullptr);
-
+    void clearSolutions() {solutions.clear(); best_solution_id = -1;}
     /** Output management **/
     void printStatus();
+    void printGlobalTime();
+    void printAlgorithm();
+    void printCollection() {collector.print();}
+    /** Timelimit management **/
+    bool isTimeLimitReached();
 
     /** Data collection management **/
     //Overridable methods for custom initialization and data collection
@@ -81,6 +88,8 @@ protected:
     int algo_status;
     int incumbent;
     int lower_bound;
+    float timelimit;
+    bool timeout;
 
     //Solution
     int best_solution_id;

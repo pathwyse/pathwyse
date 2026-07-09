@@ -1,0 +1,40 @@
+# --- Solver Parameters -------------------------------------------------------
+
+verbosity = 0
+
+# --- Problem Parameters ------------------------------------------------------
+
+problem/memory_threshold             = 10000
+problem/decimal_digits               = 2
+problem/coordinates/distance/scaling = 9.6
+problem/coordinates/microdegrees     = 1
+
+# --- Algorithms Parameters ---------------------------------------------------
+
+algo_names    = PWDefault,PWDefaultRelaxDom,PWDefaultRelaxQueue
+algo_active   = 1,0,0
+algo_parallel = 0
+
+algo/default/autoconfig = 1
+algo/default/timelimit = 0
+algo/default/search = bidirectional
+algo/default/parallel = 1
+algo/default/bidirectional/split = 0.5
+algo/default/reserve = 10000000
+
+algo/default/use_visited = 1
+algo/default/compare_unreachables = 1
+algo/two_cycle_elimination = 1
+algo/default/ng = off
+algo/default/ng/set_size = 8
+algo/default/dssr = standard
+
+algo/default/candidate/type = node
+algo/default/join/type = ordered
+algo/requested_solutions = 20
+algo/default/relaxations/queue_limit = 10
+
+# --- Data Collection ---------------------------------------------------------
+
+data_collection/level = -1
+output/write = 0

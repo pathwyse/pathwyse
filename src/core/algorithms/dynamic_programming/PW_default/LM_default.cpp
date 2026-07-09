@@ -1,4 +1,5 @@
 #include "LM_default.h"
+#include <sstream>
 #include <algorithm>
 
 /** LM management **/
@@ -13,11 +14,15 @@ LMDefault::LMDefault(Problem* problem) {
     readConfiguration();
 
     collector = DataCollector(name);
+    collector_label_fw = DataCollector("Labels_fw");
+    collector_label_bw = DataCollector("Labels_bw");
+
     initDataCollection();
 
     best_fw = nullptr;
     best_bw = nullptr;
     iterations = 0;
+    ins_attempts_fw = ins_attempts_bw = 0;
 }
 
 
@@ -48,36 +53,50 @@ void LMDefault::initLM(){
     //Push back first forward and backward labels
     bool direction = true;
     LabelAdv* predecessor = nullptr;
+    bool forward_ok = search_direction == SEARCH_BIDIRECTIONAL or search_direction == SEARCH_FORWARD;
+    bool backward_ok = search_direction == SEARCH_BIDIRECTIONAL or search_direction == SEARCH_BACKWARD;
 
     //Initialize snapshots
-    forward_labels.emplace_back();
-    forward_labels[0].initLabel(origin, predecessor, direction, n_res);
-    if(use_visited)
-        forward_labels[0].initVisited(origin, n_nodes);
-    forward_labels[0].setObjective(objective->getInitValue() + objective->getNodeCost(origin));
+    if (forward_ok)
+    {
+        forward_labels.emplace_back();
+        forward_labels[0].initLabel(origin, predecessor, direction, n_res);
+        if(use_visited)
+            forward_labels[0].initVisited(origin, n_nodes);
+        forward_labels[0].setObjective(objective->getInitValue() + objective->getNodeCost(origin));
+        ++ins_attempts_fw;
 
-    if(bidirectional) {
+        for(int id = 0; id < problem->getNumRes(); id++)
+            forward_labels[0].setSnapshot(id, resources[id]->getInitValue() + resources[id]->getNodeCost(origin));
+
+        if(Parameters::getCollectionLevel() >= 4 and Parameters::isOutputStored()) {
+            collectLabel(&collector_label_fw, &forward_labels[0]);
+            collector_label_fw.addLastRecordToSubset();
+        }
+
+        forward_candidates[origin].emplace_back(std::make_pair(forward_labels[0].getObjective(), 0));
+        forward_best[origin] = & forward_labels[0];
+    }
+    if (backward_ok){
         backward_labels.emplace_back();
         backward_labels[0].initLabel(destination, predecessor, !direction, n_res);
         if(use_visited)
             backward_labels[0].initVisited(destination, n_nodes);
-        backward_labels[0].setObjective(objective->getNodeCost(destination));
-    }
+        backward_labels[0].setObjective(objective->getInitValue() + objective->getNodeCost(destination));
+        ++ins_attempts_bw;
 
-    for(int id = 0; id < problem->getNumRes(); id++) {
-        forward_labels[0].setSnapshot(id, resources[id]->getInitValue() + resources[id]->getNodeCost(origin));
-        if(bidirectional)
+        for(int id = 0; id < problem->getNumRes(); id++)
             backward_labels[0].setSnapshot(id, resources[id]->getInitValue() + resources[id]->getNodeCost(destination));
+
+        if(Parameters::getCollectionLevel() >= 4 and Parameters::isOutputStored()){
+            collectLabel(&collector_label_bw, &backward_labels[0]);
+            collector_label_bw.addLastRecordToSubset();
+        }
+        backward_candidates[destination].emplace_back(std::make_pair(backward_labels[0].getObjective(), 0));
+        backward_best[destination] = & backward_labels[0];
+
     }
 
-    //Insert labels in the pool
-    forward_candidates[origin].emplace_back(std::make_pair(forward_labels[0].getObjective(), 0));
-
-    if(bidirectional)
-        backward_candidates[destination].emplace_back(std::make_pair(backward_labels[0].getObjective(), 0));
-
-    forward_best[origin] = & forward_labels[0];
-    backward_best[destination] = & backward_labels[0];
     incumbent = UNKNOWN;
     turn_forward = origin;
     turn_backward = destination;
@@ -86,26 +105,33 @@ void LMDefault::initLM(){
 }
 
 void LMDefault::readConfiguration() {
-    bidirectional = Parameters::isDefaultBidirectional();
+    search_direction = Parameters::getDefaultSearch();
+    bidirectional = search_direction == SEARCH_BIDIRECTIONAL;
     autoconfiguration = Parameters::isDefaultAutoConfigured();
     split_ratio = Parameters::getDefaultSplit();
     reserve_size = Parameters::getDefaultReserve();
     compare_unreachables = Parameters::isDefaultUsingUnreachables();
     use_visited = compare_unreachables or Parameters::isDefaultUsingVisited();
+    two_cycle_elimination = Parameters::useTwoCycleElimination();
     candidate_type = Parameters::getDefaultCandidateType();
-    join_type = Parameters::getDefaultJoinType();
+    join_algo = Parameters::getDefaultJoinType();
+    join_type = (join_algo == JOIN_ORDERED_NODE or join_algo == JOIN_KORDERED_NODE or join_algo == JOIN_PARETO_NODE) ? JOIN_NODE : JOIN_ARC;
 
+    requested_solutions = Parameters::getRequestedSolutions();
     if(autoconfiguration) {
         //Simple auto-tune of some parameters
         bool active = false;
         candidate_type = CANDIDATE_RR;
 
-        if(problem->isGraphCyclic()){
+        if(problem->isGraphCyclic() or Parameters::getDefaultDSSR() != DSSR_OFF or Parameters::getDefaultNG() != NG_OFF){
             active = true;
             candidate_type = CANDIDATE_NODE;
         }
 
         compare_unreachables = use_visited = active;
+        if (bidirectional and requested_solutions > 1 and (join_algo != JOIN_KORDERED or join_algo != JOIN_KORDERED_NODE)){
+            join_algo = join_type == JOIN_NODE ? JOIN_KORDERED_NODE : JOIN_KORDERED;
+        }
     }
 }
 
@@ -115,19 +141,20 @@ void LMDefault::resetLM(){
     forward_closed.clear();
     forward_closed_backup.clear();
     forward_best.clear();
-    forward_top_candidates.clear();
 
     backward_labels.clear();
     backward_candidates.clear();
     backward_closed.clear();
     backward_closed_backup.clear();
     backward_best.clear();
-    backward_top_candidates.clear();
 
     joinable_labels.clear();
     best_fw = nullptr;
     best_bw = nullptr;
     incumbent = UNKNOWN;
+    collector_label_fw.clearSubsetRecords();
+    collector_label_bw.clearSubsetRecords();
+    ins_attempts_fw = ins_attempts_bw = 0;
 }
 
 void LMDefault::update_split(){
@@ -146,6 +173,16 @@ void LMDefault::update_split(){
 /** Candidate management **/
 //Returns true if an open label is available
 bool LMDefault::candidatesAvailable(bool forward, bool backward) {
+
+    if(forward and ndominated_fw + nclosed_fw < forward_labels.size())
+        return true;
+    if(backward and ndominated_bw + nclosed_bw < backward_labels.size())
+        return true;
+
+    return false;
+
+    /*
+    //Safe (but slower) method
     for(int i = 0; i < forward_candidates.size(); i++) {
         if(forward and !forward_candidates[i].empty())
             return true;
@@ -153,6 +190,7 @@ bool LMDefault::candidatesAvailable(bool forward, bool backward) {
             return true;
     }
     return false;
+    */
 }
 
 //Returns an open candidate
@@ -199,7 +237,7 @@ LabelAdv* LMDefault::getCandidateRR(bool forward, bool backward){
             foundLabel = true;
         }
 
-        if(backward and !backward_candidates[turn].empty() and backward_top_candidates.begin()->first < score) {
+        if(backward and !backward_candidates[turn].empty() and backward_candidates[turn].begin()->first < score) {
             score = backward_candidates[turn].begin()->first;
             index = backward_candidates[turn].begin()->second;
             direction = false;
@@ -254,7 +292,7 @@ LabelAdv* LMDefault::getCandidateNode(bool forward, bool backward) {
             direction = true;
             foundLabel = true;
         }
-        if(backward and !backward_candidates[turn].empty() and backward_top_candidates.begin()->first < score) {
+        if(backward and !backward_candidates[turn].empty() and backward_candidates[turn].begin()->first < score) {
             score = backward_candidates[turn].begin()->first;
             index = backward_candidates[turn].begin()->second;
             direction = false;
@@ -323,10 +361,10 @@ bool LMDefault::isCriticalExtensionFeasible(LabelAdv *label, int next_node) {
 
     current_value = label->getSnapshot(RES_CRITICAL);
 
-    if(direction)
+    if(join_type == JOIN_ARC and direction)
         current_value = resources[RES_CRITICAL]->extend(current_value, i, j, direction);
 
-    if(!resources[RES_CRITICAL]->isFeasible(current_value, next_node, bounding, direction))
+    if(not resources[RES_CRITICAL]->isFeasible(current_value, next_node, bounding, direction))
         return false;
 
     return true;
@@ -359,18 +397,18 @@ void LMDefault::extendLabel(LabelAdv *current_label, LabelAdv *new_label, int ne
 
 void LMDefault::updateUnreachables(LabelAdv *candidate) {
     if(use_visited) {
-        int node = candidate->getNode();
-        short label_type = PARTIALLY_DOMINANT;
         int predecessor = candidate->getPredecessorNode();
-
+        short label_type = PARTIALLY_DOMINANT;
+        int node = candidate->getNode();
         bool direction = candidate->getDirection();
         std::vector<int> & neighbors = problem->getNeighbors(node, direction);
         for(auto & neigh: neighbors)
-            if(not isExtensionFeasible(candidate, neigh))
+            if(candidate->isReachable(neigh) and not isExtensionFeasible(candidate, neigh))
                 candidate->setUnreachable(neigh);
 
         if (not isExtensionFeasible(candidate, predecessor))
             label_type = DOMINANT;
+
         candidate->setLabelType(label_type);
     }
 }
@@ -379,6 +417,13 @@ void LMDefault::updateUnreachables(LabelAdv *candidate) {
 //Objective based insert
 
 LabelAdv* LMDefault::insert(LabelAdv* new_label) {
+    new_label->getDirection() ? ++ins_attempts_fw : ++ins_attempts_bw;
+
+    DataCollector* collector_label = new_label->getDirection() ? & collector_label_fw : & collector_label_bw;
+    if(Parameters::getCollectionLevel() >= 4 and Parameters::isOutputStored()){
+        collectLabel(collector_label, new_label);
+        collector_label->markLastRecord(true);
+    }
 
     //Checks if new label is suboptimal
     if(not problem->isGraphCyclic() and new_label->getObjective() > incumbent)
@@ -388,9 +433,6 @@ LabelAdv* LMDefault::insert(LabelAdv* new_label) {
     const int destination = problem->getDestination();
     const int node = new_label->getNode();
     const bool direction = new_label->getDirection();
-
-    if((direction and node == origin) or (not direction and node == destination))
-        return nullptr;
 
     const int objective = new_label->getObjective();
 
@@ -408,7 +450,7 @@ LabelAdv* LMDefault::insert(LabelAdv* new_label) {
         auto & c = candidates[node].back();
         old_label = getLabel(direction, c.second);
 
-        if (old_label->getObjective() <= objective or
+        if (old_label->getObjective() < objective or
             (old_label->getObjective() == objective and
                 old_label->getSnapshot(RES_CRITICAL) <= new_label->getSnapshot(RES_CRITICAL)))
             return nullptr;
@@ -418,10 +460,20 @@ LabelAdv* LMDefault::insert(LabelAdv* new_label) {
     }
 
     //1) Closed labels dominate new label?
-    for (auto & c: closed[node]) {
-        old_label = getLabel(direction, c.second);
+    auto cl = closed[node].begin();
+    while (cl != closed[node].end()) {
+        old_label = getLabel(direction, cl->second);
         if (dominates(old_label, new_label))
             return nullptr;
+        if(dominates(new_label, old_label)) {
+            if(Parameters::getCollectionLevel() >= 4 and Parameters::isOutputStored())
+                collector_label->markSubsetRecord(cl->second, true);
+            old_label->setDominated();
+            cl = closed[node].erase(cl);
+            ndominated++;
+            nclosed--;
+        }
+        else ++cl;
     }
 
     //2) Open labels (with better obj) dominate new label?
@@ -440,6 +492,8 @@ LabelAdv* LMDefault::insert(LabelAdv* new_label) {
         if (dominates(old_label, new_label))
             return nullptr;
         if (dominates(new_label, old_label)) {
+            if(Parameters::getCollectionLevel() >= 4 and Parameters::isOutputStored())
+                collector_label->markSubsetRecord(c->second, true);
             c = candidates[node].erase(c);
             ndominated++;
         }
@@ -451,6 +505,12 @@ LabelAdv* LMDefault::insert(LabelAdv* new_label) {
     int position = labels.size() - 1;
     new_label = &labels[position];
 
+    if(Parameters::getCollectionLevel() >= 4 and Parameters::isOutputStored()) {
+        //collectLabel(collector_label, new_label);
+        collector_label->markLastRecord(false);
+        collector_label->addLastRecordToSubset();
+    }
+
     //Keep track of the lowest cost label at each node
     if(not best[node] or best[node]->getObjective() >= objective)
         best[node] = new_label;
@@ -460,13 +520,16 @@ LabelAdv* LMDefault::insert(LabelAdv* new_label) {
         closed[node].emplace_back(std::make_pair(objective, position));
         nclosed++;
     }
-    else
-        candidates[node].insert(c, std::make_pair(objective, position));
-
+    else {
+        c = candidates[node].insert(c, std::make_pair(objective, position));
+        ++c;
+    }
     //5) Are open labels (with worse obj) dominated by new label?
     while(c != candidates[node].end()){
         old_label = getLabel(direction, c->second);
         if(dominates(new_label, old_label)) {
+            if(Parameters::getCollectionLevel() >= 4 and Parameters::isOutputStored())
+                collector_label->markSubsetRecord(c->second, true);
             c = candidates[node].erase(c);
             ndominated++;
         }
@@ -483,7 +546,6 @@ LabelAdv* LMDefault::insert(LabelAdv* new_label) {
     return new_label;
 }
 
-
 //Returns true if l1 dominates l2
 bool LMDefault::dominates(LabelAdv* l1, LabelAdv* l2)  {
 
@@ -497,11 +559,15 @@ bool LMDefault::dominates(LabelAdv* l1, LabelAdv* l2)  {
     if(not compare_unreachables)
         return true;
 
-    //Unreachable dominance
-    bool isSubset = ((l1->getUnreachable()) & ~(l2->getUnreachable())).none();
-
-    if(not isSubset)
+    if (l1->getUnreachableCount() > l2->getUnreachableCount())
         return false;
+
+    //Unreachable dominance
+    if (not is_subset(l1->getUnreachable(), l2->getUnreachable()))
+        return false;
+
+    if (not two_cycle_elimination)
+        return true;
 
     //if L1 is dominant, L2 can be discarded
     if (l1->getLabelType() == DOMINANT)
@@ -535,7 +601,6 @@ bool LMDefault::dominates(LabelAdv* l1, LabelAdv* l2)  {
     return false;
 }
 
-
 /** Join **/
 void LMDefault::join(){
     if(Parameters::getVerbosity() >= 4)
@@ -544,7 +609,7 @@ void LMDefault::join(){
     if(candidatesAvailable())
         closeLabels();
 
-    switch(join_type){
+    switch(join_algo){
         case JOIN_NAIVE:
             naiveJoin();
             break;
@@ -553,6 +618,26 @@ void LMDefault::join(){
             break;
         case JOIN_ORDERED:
             orderedJoin();
+            break;
+        case JOIN_PARETO_ARC:
+            paretoArcJoin();
+            break;
+        case JOIN_PARETO_NODE:
+            paretoNodeJoin();
+            break;
+        case JOIN_ORDERED_NODE:
+            orderedNodeJoin();
+            break;
+        case JOIN_KORDERED:
+            ksol_orderedJoin();
+            break;
+        case JOIN_KORDERED_NODE:
+            ksol_orderedNodeJoin();
+            break;
+
+        default:
+            if (join_type == JOIN_NODE) orderedNodeJoin();
+            else orderedJoin();
             break;
     }
 
@@ -595,7 +680,7 @@ void LMDefault::naiveJoin(){
     for (int i = 0; i < forward_closed.size(); i++)
         if(i != problem->getDestination())
             for(int j = 0; j < backward_closed.size(); j++)
-                if(problem->areNeighbors(i, j, true) and j != problem->getOrigin()) {
+                if(j != problem->getOrigin() and problem->areNeighbors(i, j, true)) {
                     for (auto &forward_data: forward_closed[i]){
                         label_forward = &forward_labels[forward_data.second];
                         for (auto &backward_data: backward_closed[j]) {
@@ -610,7 +695,6 @@ void LMDefault::naiveJoin(){
                         }
                     }
                 }
-
 }
 
 void LMDefault::classicJoin() {
@@ -623,7 +707,7 @@ void LMDefault::classicJoin() {
     for (int i = 0; i < forward_closed.size(); i++)
         if (forward_best[i] and i != problem->getDestination())
             for (int j = 0; j < backward_closed.size(); j++)
-                if (problem->areNeighbors(i, j, true) and (backward_best[j]) and j != problem->getOrigin()) {
+                if ((backward_best[j]) and j != problem->getOrigin() and problem->areNeighbors(i, j, true)) {
                     cost = objective->join(forward_best[i]->getObjective(), backward_best[j]->getObjective(), i, j);
                     //cost best f(i) + best b(j) > bound -> go to next node j
                     if (cost <= incumbent) {
@@ -664,9 +748,9 @@ void LMDefault::orderedJoin(){
 
     //Prepare data structure
     for(i = 0; i < forward_closed.size(); i++)
-        if(!forward_closed[i].empty() and i != problem->getDestination())
+        if(not forward_closed[i].empty() and i != problem->getDestination())
             for(j = 0; j < backward_closed.size(); j++)
-                if(problem->areNeighbors(i, j, true) and !backward_closed[j].empty() and i != j and j != problem->getOrigin()) {
+                if(not backward_closed[j].empty() and j != problem->getOrigin() and problem->areNeighbors(i, j, true)) {
                     cost = objective->join(forward_best[i]->getObjective(), backward_best[j]->getObjective(), i, j);
                     if(cost <= incumbent)
                         orderedPairs.insert(std::make_tuple(cost, i, j));
@@ -675,7 +759,7 @@ void LMDefault::orderedJoin(){
     //attempt join
     joinComparisons = 0;
     LabelAdv *label_forward, *label_backward;
-    while(!orderedPairs.empty()){
+    while(not orderedPairs.empty()){
         cost = std::get<0>(*orderedPairs.begin());
         if(cost <= incumbent){
             i = std::get<1>(*orderedPairs.begin());
@@ -705,24 +789,461 @@ void LMDefault::orderedJoin(){
     }
 }
 
+
+void LMDefault::ksol_orderedJoin(){
+    auto objective = problem->getObj();
+    std::multiset<std::tuple<int, int, int>> orderedPairs;
+    int kth_cost = UNKNOWN;
+    int cost;
+    int i, j;
+
+    //Sort closed
+    for(int p = 0; p < forward_closed.size(); p++){
+        if(not forward_closed[p].empty())
+            std::sort(forward_closed[p].begin(), forward_closed[p].end());
+        if(not backward_closed[p].empty())
+            std::sort(backward_closed[p].begin(), backward_closed[p].end());
+    }
+
+    //Prepare data structure
+    for(i = 0; i < forward_closed.size(); i++)
+        if(not forward_closed[i].empty() and i != problem->getDestination())
+            for(j = 0; j < backward_closed.size(); j++)
+                if(not backward_closed[j].empty() and j != problem->getOrigin() and problem->areNeighbors(i, j, true)) {
+                    cost = objective->join(forward_best[i]->getObjective(), backward_best[j]->getObjective(), i, j);
+                    orderedPairs.insert(std::make_tuple(cost, i, j));
+                }
+
+    //attempt join
+    joinComparisons = 0;
+    LabelAdv *label_forward, *label_backward;
+    while(not orderedPairs.empty()){
+        cost = std::get<0>(*orderedPairs.begin());
+        if(cost > kth_cost)
+            break;
+        i = std::get<1>(*orderedPairs.begin());
+        j = std::get<2>(*orderedPairs.begin());
+        orderedPairs.erase(orderedPairs.begin());
+
+        for(auto & f: forward_closed[i]) {
+            label_forward = &forward_labels[f.second];
+            //If current label (i) + best label of j is worse than bound, skip to next i-j combination
+            if(objective->join(label_forward->getObjective(), backward_best[j]->getObjective(), i, j) > kth_cost)
+                break;
+
+            for(auto & b: backward_closed[j]) {
+                label_backward = &backward_labels[b.second];
+                cost = objective->join(label_forward->getObjective(), label_backward->getObjective(), i, j);
+                if(cost > kth_cost)
+                    break;
+
+                joinComparisons++;
+                if(isJoinFeasible(label_forward, label_backward)) {
+                    if(cost < incumbent) incumbent = cost;
+                    joinable_labels.insert(std::make_tuple(cost, label_forward, label_backward));
+                    if(joinable_labels.size() > requested_solutions) {
+                        joinable_labels.erase(std::prev(joinable_labels.end()));
+                        kth_cost = std::get<0>(*std::prev(joinable_labels.end()));
+                    }
+                }
+            }
+        }
+    }
+}
+
+void LMDefault::ksol_orderedNodeJoin(){
+    auto objective = problem->getObj();
+    int kth_cost = UNKNOWN;
+    joinComparisons = 0;
+    LabelAdv *label_forward, *label_backward;
+
+    for(int node = 0; node < forward_closed.size(); node++){
+        auto & fw = forward_closed[node];
+        auto & bw = backward_closed[node];
+
+        if(fw.empty() or bw.empty())
+            continue;
+
+        int best_cost = objective->join(forward_best[node]->getObjective(), backward_best[node]->getObjective(), node);
+        if(best_cost > kth_cost)
+            continue;
+
+        std::sort(fw.begin(), fw.end());
+        std::sort(bw.begin(), bw.end());
+
+        for(int i = 0; i < fw.size(); i++){
+            label_forward = &forward_labels[fw[i].second];
+            best_cost = objective->join(label_forward->getObjective(), backward_best[node]->getObjective(), node);
+            //If current label + best backward is worse than bound, skip remaining forward labels
+            if(best_cost > kth_cost)
+                break;
+
+            for(int j = 0; j < bw.size(); j++){
+                label_backward = &backward_labels[bw[j].second];
+                int cost = objective->join(label_forward->getObjective(), label_backward->getObjective(), node);
+                if(cost > kth_cost)
+                    break;
+
+                joinComparisons++;
+                if(isNodeJoinFeasible(label_forward, label_backward)) {
+                    if(cost < incumbent) incumbent = cost;
+                    joinable_labels.insert(std::make_tuple(cost, label_forward, label_backward));
+                    if(joinable_labels.size() > requested_solutions) {
+                        joinable_labels.erase(std::prev(joinable_labels.end()));
+                        kth_cost = std::get<0>(*std::prev(joinable_labels.end()));
+                    }
+                }
+            }
+        }
+    }
+}
+
+void LMDefault::orderedNodeJoin() {
+    auto objective = problem->getObj();
+    joinComparisons = 0;
+    LabelAdv *label_forward, *label_backward;
+
+    for (int node = 0; node < forward_closed.size(); node++){
+        auto & fw = forward_closed[node];
+        auto & bw = backward_closed[node];
+
+        if (fw.empty() or bw.empty())
+            continue;
+
+        int best_cost = objective->join(forward_best[node]->getObjective(), backward_best[node]->getObjective(), node);
+
+        if (best_cost > incumbent)
+            continue;
+
+        std::sort(fw.begin(), fw.end());
+        std::sort(bw.begin(), bw.end());
+
+        for (int i = 0; i < fw.size(); i++){
+            label_forward = &forward_labels[fw[i].second];
+            best_cost = objective->join(label_forward->getObjective(), backward_best[node]->getObjective(), node);
+            if (best_cost > incumbent)
+                break;
+
+            for (int j = 0; j < bw.size(); j++){
+                label_backward = &backward_labels[bw[j].second];
+
+                int cost = objective->join(label_forward->getObjective(), label_backward->getObjective(), node);
+                if (cost > incumbent)
+                    break;
+
+                joinComparisons++;
+                if(isNodeJoinFeasible(label_forward, label_backward)) {
+                    incumbent = cost;
+                    joinable_labels.insert(std::make_tuple(cost, label_forward, label_backward));
+                    break;
+                }
+            }
+        }
+    }
+}
+
+// ParetoJoin
+// Binary-search based Pareto pruning: exploits sorted (rows, cols) to discard whole
+// blocks of dominated pairs without enumerating them, converging on the best feasible join.
+// rows/cols represent the forward/backward label lists; start/end_row/col bound the sub-block explored.
+void LMDefault::paretoSearchBlock(Resource* objective, int node_fw, int node_bw,
+                                   std::vector<std::pair<int, int>>& rows,
+                                   std::vector<std::pair<int, int>>& cols,
+                                   int start_row, int end_row, int start_col, int end_col) {
+
+    // Join cost and feasibility for a (fw, bw) pair on arc or node
+    auto joinCost = [&](LabelAdv* fw, LabelAdv* bw) {
+        return (node_fw == node_bw)
+            ? objective->join(fw->getObjective(), bw->getObjective(), node_fw)
+            : objective->join(fw->getObjective(), bw->getObjective(), node_fw, node_bw);
+    };
+    auto joinFeasible = [&](LabelAdv* fw, LabelAdv* bw) {
+        return (node_fw == node_bw)
+            ? isNodeJoinFeasible(fw, bw)
+            : isJoinFeasible(fw, bw);
+    };
+
+    // Check: Best solution
+    // (rows[start_row], cols[start_col]) is the cheapest pair in this block.
+    // If its cost already meets or exceeds the incumbent the entire block is suboptimal.
+    LabelAdv* fw_label = &forward_labels [rows[start_row].second];
+    LabelAdv* bw_label = &backward_labels[cols[start_col].second];
+    int cost           = joinCost(fw_label, bw_label);
+    if (cost >= incumbent)
+        return;
+
+    // Base a: Single cell
+    // cost < incumbent is already guaranteed from other steps; only feasibility is open.
+    if (start_row == end_row && start_col == end_col) {
+        joinComparisons++;
+        if (joinFeasible(fw_label, bw_label)) {
+            incumbent = cost;
+            best_fw   = fw_label;
+            best_bw   = bw_label;
+        }
+        return;
+    }
+
+    // Base b: Single row (one forward label, several backward)
+    // Scan backward labels left-to-right (increasing cost).
+    // The first feasible join is optimal for this row.
+    // The first pair with cost ≥ incumbent means all remaining are suboptimal.
+    if (start_row == end_row) {
+        joinComparisons++;
+        if (joinFeasible(fw_label, bw_label)) {
+            incumbent = cost;
+            best_fw   = fw_label;
+            best_bw   = bw_label;
+            return;
+        }
+        for (int col = start_col + 1; col <= end_col; col++) {
+            bw_label = &backward_labels[cols[col].second];
+            cost     = joinCost(fw_label, bw_label);
+            if (cost >= incumbent) return;
+            joinComparisons++;
+            if (joinFeasible(fw_label, bw_label)) {
+                incumbent = cost;
+                best_fw   = fw_label;
+                best_bw   = bw_label;
+                return;
+            }
+        }
+        return;
+    }
+
+    // Base c: Single column (one backward label, several forward)
+    // Scan forward labels top-to-bottom (increasing cost), same logic as single row.
+    if (start_col == end_col) {
+        joinComparisons++;
+        if (joinFeasible(fw_label, bw_label)) {
+            incumbent = cost;
+            best_fw   = fw_label;
+            best_bw   = bw_label;
+            return;
+        }
+        for (int row = start_row + 1; row <= end_row; row++) {
+            fw_label = &forward_labels[rows[row].second];
+            cost     = joinCost(fw_label, bw_label);
+            if (cost >= incumbent) return;
+            joinComparisons++;
+            if (joinFeasible(fw_label, bw_label)) {
+                incumbent = cost;
+                best_fw   = fw_label;
+                best_bw   = bw_label;
+                return;
+            }
+        }
+        return;
+    }
+
+    // Step 1: Binary search
+    // win_* tracks the search window; it starts as the full block and shrinks
+    // until it collapses to a single cell (the pivot, handled in Step 2).
+    int win_row_start = start_row, win_row_end = end_row;
+    int win_col_start = start_col, win_col_end = end_col;
+
+    while (win_row_start < win_row_end || win_col_start < win_col_end) {
+        int mid_row = (win_row_start + win_row_end) / 2;
+        int mid_col = (win_col_start + win_col_end) / 2;
+
+        fw_label = &forward_labels [rows[mid_row].second];
+        bw_label = &backward_labels[cols[mid_col].second];
+        cost     = joinCost(fw_label, bw_label);
+
+        if (cost >= incumbent) {
+            // Midpoint is suboptimal: everything to its bottom-right is also suboptimal.
+            // Shrink the window toward top-left, keeping each axis fixed if already a single point.
+            if (win_row_start != win_row_end) win_row_end = mid_row - 1;
+            if (win_col_start != win_col_end) win_col_end = mid_col - 1;
+        } else {
+            joinComparisons++;
+            if (joinFeasible(fw_label, bw_label)) {
+                // Feasible improvement: update incumbent.
+                // The new incumbent makes the bottom-right suboptimal → same shrink as above.
+                incumbent = cost;
+                best_fw   = fw_label;
+                best_bw   = bw_label;
+                if (win_row_start != win_row_end) win_row_end = mid_row - 1;
+                if (win_col_start != win_col_end) win_col_end = mid_col - 1;
+            } else {
+                // Infeasible: cannot prune bottom-right, must explore it.
+                // Shift the window lower-right.
+                if (win_row_start != win_row_end) win_row_start = mid_row + 1;
+                if (win_col_start != win_col_end) win_col_start = mid_col + 1;
+            }
+        }
+    }
+
+    // Step 2: Pivot test
+    // The search window has collapsed to a single cell: the pivot.
+    // We test it and use the result to decide how to split the remaining unexplored block.
+    const int pivot_row = win_row_start;  // == win_row_end after convergence
+    const int pivot_col = win_col_start;  // == win_col_end after convergence
+
+    fw_label = &forward_labels [rows[pivot_row].second];
+    bw_label = &backward_labels[cols[pivot_col].second];
+    cost     = joinCost(fw_label, bw_label);
+
+    // prune_bottom_right is true when the pivot is suboptimal OR feasible:
+    //   in both cases the bottom-right quadrant of the pivot can be discarded.
+    // It is false only when the pivot is infeasible with cost < incumbent,
+    //   meaning bottom-right pairs might still be feasible.
+    bool prune_bottom_right;
+    if (cost >= incumbent) {
+        prune_bottom_right = true;
+    } else {
+        joinComparisons++;
+        if (joinFeasible(fw_label, bw_label)) {
+            incumbent          = cost;
+            best_fw            = fw_label;
+            best_bw            = bw_label;
+            prune_bottom_right = true;
+        } else {
+            prune_bottom_right = false;
+        }
+    }
+
+    // Step 3: Recursive calls
+    // Recursion is only meaningful when both dimensions are non-trivial at the
+    // outer level (single-row / single-col cases are fully handled in Base 1).
+    if (start_row >= end_row or start_col >= end_col)
+        return;
+
+    if (prune_bottom_right) {
+        // The pivot (and everything to its bottom-right) is suboptimal or already
+        // represented by the updated incumbent.  Two unexplored regions remain:
+        //   Top strip : rows strictly above the pivot, all columns.
+        //   Left strip: rows from pivot downward, columns strictly left of pivot.
+        if (start_row < pivot_row)
+            paretoSearchBlock(objective, node_fw, node_bw, rows, cols,
+                              start_row, pivot_row - 1, start_col, end_col);
+        if (start_col < pivot_col)
+            paretoSearchBlock(objective, node_fw, node_bw, rows, cols,
+                              pivot_row, end_row, start_col, pivot_col - 1);
+    } else {
+        // Pivot is infeasible: higher-cost label pairs may still be resource-compatible,
+        // so the bottom-right cannot be discarded entirely.
+        if (pivot_row == end_row) {
+            // Pivot is on the last row of the block.
+            // Explore all rows above it (with all columns), then the columns to its
+            // left on the pivot row itself.
+            if (start_row < pivot_row)
+                paretoSearchBlock(objective, node_fw, node_bw, rows, cols,
+                                  start_row, pivot_row - 1, start_col, end_col);
+            if (start_col < pivot_col)      
+                paretoSearchBlock(objective, node_fw, node_bw, rows, cols,
+                                  pivot_row, pivot_row, start_col, pivot_col - 1);
+        } else {
+            // Pivot is not on the last row: explore all rows up to and including
+            // the pivot row (the pivot itself was infeasible but columns to its left
+            // are still unexplored on that row, handled by the recursive call).
+            paretoSearchBlock(objective, node_fw, node_bw, rows, cols,
+                              start_row, pivot_row, start_col, end_col);
+        }
+        // Explore the rows below the pivot with columns up to pivot_col.
+        if (pivot_row < end_row)
+            paretoSearchBlock(objective, node_fw, node_bw, rows, cols,
+                              pivot_row + 1, end_row, start_col, pivot_col);
+    }
+}
+
+// Arc-join entry point for the Pareto procedure.
+// For each arc (i → j) in the network, calls paretoSearchBlock to find the best
+// feasible combination of a forward label ending at i and a backward label starting at j.
+// Label sets are sorted by non-decreasing cost before the search (required invariant).
+// The overall best join found is stored in joinable_labels.
+void LMDefault::paretoArcJoin() {
+    incumbent       = UNKNOWN; 
+    joinComparisons = 0;
+    best_fw         = nullptr;
+    best_bw         = nullptr;
+
+    // Sort each closed label list by cost (non-decreasing) .
+    for (int node = 0; node < (int)forward_closed.size(); node++) {
+        if (!forward_closed[node].empty())
+            std::sort(forward_closed[node].begin(), forward_closed[node].end());
+        if (!backward_closed[node].empty())
+            std::sort(backward_closed[node].begin(), backward_closed[node].end());
+    }
+
+    auto* objective = problem->getObj();
+
+    for (int i = 0; i < (int)forward_closed.size(); i++) {
+        // Skip: no forward labels at i, or i is the destination (complete paths, not candidates).
+        if (not forward_best[i] or i == problem->getDestination())
+            continue;
+
+        for (int j = 0; j < (int)backward_closed.size(); j++) {
+            // Skip: no backward labels at j, j is the origin, or (i,j) is not an arc.
+            if (not backward_best[j] or j == problem->getOrigin() or not problem->areNeighbors(i, j, true))
+                continue;
+
+            paretoSearchBlock(objective, i, j,
+                              forward_closed[i],  backward_closed[j],
+                              0, (int)forward_closed[i].size()  - 1,
+                              0, (int)backward_closed[j].size() - 1);
+        }
+    }
+
+    if (best_fw && best_bw)
+        joinable_labels.insert(std::make_tuple(incumbent, best_fw, best_bw));
+}
+
+// Node-join entry point for the Pareto procedure.
+// For each node, calls paretoSearchBlock to find the best feasible combination of a
+// forward label and a backward label both closed at that same node.
+// Label sets are sorted by non-decreasing cost before the search (required invariant).
+// The overall best join found is stored in joinable_labels.
+void LMDefault::paretoNodeJoin() {
+    incumbent       = UNKNOWN;
+    joinComparisons = 0;
+    best_fw         = nullptr;
+    best_bw         = nullptr;
+
+    // Sort each closed label list by cost (non-decreasing) .
+    for (int node = 0; node < (int)forward_closed.size(); node++) {
+        if (!forward_closed[node].empty())
+            std::sort(forward_closed[node].begin(), forward_closed[node].end());
+        if (!backward_closed[node].empty())
+            std::sort(backward_closed[node].begin(), backward_closed[node].end());
+    }
+
+    auto* objective = problem->getObj();
+
+    for (int node = 0; node < (int)forward_closed.size(); node++) {
+        // Skip: no forward/backward labels closed at this node, or it's the origin/destination.
+        if (not forward_best[node] or not backward_best[node]
+            or node == problem->getOrigin() or node == problem->getDestination())
+            continue;
+
+        paretoSearchBlock(objective, node, node,
+                          forward_closed[node], backward_closed[node],
+                          0, (int)forward_closed[node].size()  - 1,
+                          0, (int)backward_closed[node].size() - 1);
+    }
+
+    if (best_fw && best_bw)
+        joinable_labels.insert(std::make_tuple(incumbent, best_fw, best_bw));
+}
+
 bool LMDefault::isJoinFeasible(LabelAdv* label_forward, LabelAdv* label_backward) {
     int i = label_forward->getNode();
     int j = label_backward->getNode();
-    int i_predecessor = label_forward->getPredecessorNode();
-    int j_predecessor = label_backward->getPredecessorNode();
-
-    int current_value;
     int snapshot_forward, snapshot_backward;
     std::vector<Resource*>& resources = problem->getResources();
 
-    if (i == j_predecessor or j == i_predecessor)
-        return false;
+    if (two_cycle_elimination){
+        int i_predecessor = label_forward->getPredecessorNode();
+        int j_predecessor = label_backward->getPredecessorNode();
+        if (i == j_predecessor or j == i_predecessor)
+            return false;
+    }
 
     for(int resID = 0; resID < problem->getNumRes(); resID++) {
         snapshot_forward = label_forward->getSnapshot(resID);
         snapshot_backward = label_backward->getSnapshot(resID);
         int current_value = resources[resID]->join(snapshot_forward, snapshot_backward, i, j);
-        if(!resources[resID]->isFeasible(current_value))
+        if(not resources[resID]->isFeasible(current_value))
             return false;
     }
 
@@ -731,6 +1252,37 @@ bool LMDefault::isJoinFeasible(LabelAdv* label_forward, LabelAdv* label_backward
 
     return true;
 }
+
+bool LMDefault::isNodeJoinFeasible(LabelAdv* label_forward, LabelAdv* label_backward) {
+    int node = label_forward->getNode();
+
+    int snapshot_forward, snapshot_backward;
+    std::vector<Resource*>& resources = problem->getResources();
+
+    if (two_cycle_elimination) {
+        int i_predecessor = label_forward->getPredecessorNode();
+        int j_predecessor = label_backward->getPredecessorNode();
+        if (j_predecessor == i_predecessor)
+            return false;
+    }
+
+    for(int resID = 0; resID < problem->getNumRes(); resID++) {
+        snapshot_forward = label_forward->getSnapshot(resID);
+        snapshot_backward = label_backward->getSnapshot(resID);
+        int current_value = resources[resID]->join(snapshot_forward, snapshot_backward, node);
+        if(!resources[resID]->isFeasible(current_value))
+            return false;
+    }
+
+    if(use_visited) {
+        auto mask = label_forward->getVisited() & label_backward->getVisited();
+        mask.reset(node);
+        return mask.none();
+    }
+    return true;
+}
+
+
 
 /** Solution management +*/
 //Return a solution
@@ -748,6 +1300,15 @@ std::tuple<int, LabelAdv*, LabelAdv*> LMDefault::getSolutionLabels() {
     }
 
     return solution_data;
+}
+
+void LMDefault::sortClosedLabels(bool direction, int node) {
+    auto& closed = direction ? forward_closed[node] : backward_closed[node];
+    std::sort(closed.begin(), closed.end());
+}
+
+const std::vector<std::pair<int, int>>& LMDefault::getClosedLabels(bool direction, int node) {
+    return direction ? forward_closed[node] : backward_closed[node];
 }
 
 void LMDefault::setODLabel() {
@@ -914,10 +1475,16 @@ void LMDefault::initDataCollection() {
     collector.init("lm_name", name);
     collector.init("data_structure", lm_type);
     collector.init("executionID", 0);
+    collector.init("compare_unreachables", 0);
+    collector.init("use_visited", 0);
+    collector.init("candidate_type", "-1");
+    collector.init("join_algo", "-1");
     collector.init("iterations", 0);
-    collector.init("nlabels", 0);
-    collector.init("nfw", 0);
-    collector.init("nbw", 0);
+    collector.init("ins_attempts_fw", 0);
+    collector.init("ins_attempts_bw", 0);
+    collector.init("nlabels_inserted", 0);
+    collector.init("nfw_inserted", 0);
+    collector.init("nbw_inserted", 0);
     collector.init("ndominated", 0);
     collector.init("ndominated_fw", 0);
     collector.init("ndominated_bw", 0);
@@ -927,6 +1494,40 @@ void LMDefault::initDataCollection() {
     collector.init("njoin", "0");
     collector.init("split", split_ratio);
     collector.setHeader();
+
+    initLabelDataCollection(&collector_label_fw);
+    initLabelDataCollection(&collector_label_bw);
+}
+void LMDefault::initLabelDataCollection(DataCollector* collector_label) {
+    if(Parameters::getCollectionLevel() < 4)
+        return;
+
+    //collector_label->init("executionID", 0);
+    collector_label->init("iterations", 0);
+    collector_label->init("direction", 0);
+    collector_label->init("node", -1);
+    collector_label->init("predecessor", -1);
+    collector_label->init("objective", UNKNOWN);
+    collector_label->init("consumption_critical", UNKNOWN);
+    for(int i = 1; i < problem->getNumRes(); i++)
+        collector_label->init("consumption_"+std::to_string(i), UNKNOWN);
+    collector_label->init("tour_length", -1);
+    collector_label->init("nvisited", -1);
+    collector_label->init("nunreachable", -1);
+    collector_label->init("nvisited_unaltered", -1);
+    collector_label->init("repeated_visits", -1);
+
+    //Globally
+    collector_label->init("nlabels_network", -1);
+    collector_label->init("nlabels_dominated_network", -1);
+    collector_label->init("nlabels_closed_network", -1);
+    collector_label->init("nlabels_open_network", -1);
+    //At insertion node
+    collector_label->init("nlabels_node", -1);
+    collector_label->init("nlabels_closed_node", -1);
+    collector_label->init("nlabels_open_node", -1);
+    collector_label->setHeader();
+
 }
 
 float LMDefault::getMeanLabels(bool direction){
@@ -967,9 +1568,35 @@ void LMDefault::collectData() {
     collector.collect("lm_name", name);
     collector.collect("executionID", executionID);
     collector.collect("iterations", iterations);
-    collector.collect("nlabels", (int) (forward_labels.size() + backward_labels.size()));
-    collector.collect("nfw", (int) forward_labels.size());
-    collector.collect("nbw", (int) backward_labels.size());
+    collector.collect("compare_unreachables", compare_unreachables);
+    collector.collect("use_visited", use_visited);
+    std::string candidate_type_st;
+
+    switch(candidate_type){
+        case CANDIDATE_RR:  candidate_type_st = "round-robin"; break;
+        default: candidate_type_st = "node"; break;
+    }
+    collector.collect("candidate_type", candidate_type_st);
+
+    std::string join_algo_st;
+
+    switch(join_algo){
+        case JOIN_NAIVE:  join_algo_st = "naive (arc)"; break;
+        case JOIN_CLASSIC:  join_algo_st = "classic (arc)"; break;
+        case JOIN_ORDERED:  join_algo_st = "ordered (arc)"; break;
+        case JOIN_PARETO_ARC:  join_algo_st = "pareto (arc)"; break;
+        case JOIN_ORDERED_NODE:  join_algo_st = "ordered (node)"; break;
+        case JOIN_KORDERED:  join_algo_st = "kordered (arc)"; break;
+        case JOIN_KORDERED_NODE:  join_algo_st = "kordered (node)"; break;
+        default: join_algo_st = "default"; break;
+    }
+    collector.collect("join_algo", join_algo_st);
+
+    collector.collect("ins_attempts_fw", ins_attempts_fw);
+    collector.collect("ins_attempts_bw", ins_attempts_bw);
+    collector.collect("nlabels_inserted", (int) (forward_labels.size() + backward_labels.size()));
+    collector.collect("nfw_inserted", (int) forward_labels.size());
+    collector.collect("nbw_inserted", (int) backward_labels.size());
     collector.collect("ndominated", ndominated_fw + ndominated_bw);
     collector.collect("ndominated_fw", ndominated_fw);
     collector.collect("ndominated_bw", ndominated_bw);
@@ -980,5 +1607,43 @@ void LMDefault::collectData() {
     collector.saveRecord();
 }
 
+void LMDefault::collectLabel(DataCollector* collector_label, LabelAdv *l) {
+    if(Parameters::getCollectionLevel() < 4)
+        return;
+
+    bool direction = l->getDirection();
+    int node = l->getNode();
+
+    //collector_label->collect("executionID", executionID);
+    collector_label->collect("iterations", iterations);
+    collector_label->collect("direction", l->getDirection());
+    collector_label->collect("node", node);
+    collector_label->collect("predecessor", l->getPredecessorNode());
+    collector_label->collect("objective", l->getObjective());
+    collector_label->collect("consumption_critical", l->getSnapshot(RES_CRITICAL));
+    for(int i = 1; i < problem->getNumRes(); i++)
+        collector_label->collect("consumption_"+std::to_string(i), l->getSnapshot(i));
+
+    collector_label->collect("nvisited", (int) l->getVisited().count());
+    collector_label->collect("nunreachable", (int) l->getUnreachable().count());
+
+    //Globally
+    int n_open = direction? getForwardSize()  - ndominated_fw - nclosed_fw : getBackwardSize()  - ndominated_bw - nclosed_bw;
+    collector_label->collect("nlabels_network", direction? getForwardSize() : getBackwardSize());
+    collector_label->collect("nlabels_dominated_network", direction? ndominated_fw : ndominated_bw);
+    collector_label->collect("nlabels_closed_network", direction? nclosed_fw : nclosed_bw);
+    collector_label->collect("nlabels_open_network", n_open);
+
+    //Node
+    int nlabels_closed_node = direction ? forward_closed[node].size() : backward_closed[node].size();
+    int nlabels_open_node = direction ? forward_candidates[node].size() : backward_candidates[node].size();
+    int nlabels_node = nlabels_closed_node + nlabels_open_node;
+    collector_label->collect("nlabels_node", nlabels_node);
+    collector_label->collect("nlabels_closed_node", nlabels_closed_node);
+    collector_label->collect("nlabels_open_node", nlabels_open_node);
+
+
+    collector_label->saveRecord();
+}
 
 

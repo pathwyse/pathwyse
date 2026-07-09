@@ -1,5 +1,7 @@
 #include "PW_default.h"
 #include <thread>
+#include <fstream>
+#include <sstream>
 
 /** Algorithm management **/
 //Constructors and destructors
@@ -40,16 +42,32 @@ void PWDefault::initAlgorithm() {
 }
 
 void PWDefault::readConfiguration(){
+    requested_solutions = Parameters::getRequestedSolutions();
     timelimit = Parameters::getDefaultTimelimit();
     parallel = Parameters::isDefaultParallel();
-    bidirectional = Parameters::isDefaultBidirectional();
+    search_direction = Parameters::getDefaultSearch();
+    bidirectional = search_direction == SEARCH_BIDIRECTIONAL;
     dssr = Parameters::getDefaultDSSR();
     ng = Parameters::getDefaultNG();
     ng_size = Parameters::getDefaultNGSize();
+    ng_set_path = Parameters::getDefaultNGSetPath();
     earlyjoin = Parameters::isDefaultJoinEarly();
     earlyjoin_step = Parameters::getDefaultJoinStep();
-    use_visited = Parameters::isDefaultUsingVisited();
+    use_visited = label_manager->getUseVisited();
+    two_cycle_elimination = Parameters::useTwoCycleElimination();
     algo_type = ALGO_EXACT;
+
+    if(not problem->isGraphCyclic()) {
+        dssr = DSSR_OFF;
+        ng = NG_OFF;
+        use_visited = false;
+        label_manager->setUseVisited(use_visited);
+        label_manager->setCompareUnreachables(false);
+    }
+    else {
+        if (not use_visited) algo_type = ALGO_RELAXATION;
+        else if (not label_manager->getCompareUnreachables()) algo_type = ALGO_HEURISTIC;
+    }
 
     if(name == "PWDefaultRelaxDom") {
         dssr = DSSR_OFF;
@@ -70,10 +88,10 @@ void PWDefault::resetIteration(){
     iterations++;
     collector.resetTimes();
     previous_unreachable_max_count = unreachable_max_count;
-    it_ext_fw = it_ext_bw = ins_attempts_fw = ins_attempts_bw = 0;
-    label_manager->initLM();
+    it_ext_fw = it_ext_bw = 0;
     label_manager->setExecutionID(executionID);
     label_manager->setIteration(iterations);
+    label_manager->initLM();
 }
 
 void PWDefault::resetAlgorithm(int reset_level) {
@@ -98,15 +116,58 @@ void PWDefault::resetAlgorithm(int reset_level) {
     timeout = false;
 }
 
+bool PWDefault::preprocessing(){
+    bool termination = true;
+
+    preprocess = new Preprocessing("preprocessing", problem);
+    preprocess->setExecutionID(executionID);
+    preprocess->solve();
+    lower_bound = preprocess->getLowerBound();
+    incumbent = preprocess->getIncumbent();
+    if(Parameters::getVerbosity() >= 1)
+        std::cout << "Preprocessing time (s): " << preprocess->getGlobalTime() << std::endl;
+
+    auto bestPath = preprocess->getBestSolution();
+    if(bestPath and bestPath->getStatus() == PATH_OPTIMAL) {
+        addSolution(*bestPath);
+        if(Parameters::getVerbosity() >= 2)
+            std::cout<<"Optimal solution found during pre-processing...terminating"<<std::endl;
+    }
+    else if(problem->getStatus() != PROBLEM_INFEASIBLE) {
+        if(Parameters::getVerbosity() >= 2)
+                    std::cout<<"Pre-processing complete...searching for an optimal solution"<<std::endl;
+        termination = false;
+        label_manager->setSplit(preprocess->getSplit());
+        label_manager->setIncumbent(incumbent);
+        label_manager->initLM();
+        label_manager->setExecutionID(executionID);
+    }
+
+    if (timeout) setStatus(ALGO_TIMELIMIT);
+    else if(termination) setStatus(ALGO_DONE);
+    return termination;
+}
+
 //Solve problem
 void PWDefault::solve(){
-    if(Parameters::getVerbosity() >= 4)
-        std::cout<<"Solving..."<<std::endl;
 
     setStatus(ALGO_OPTIMIZING);
-    initAlgorithm();
 
     bool termination = false;
+
+
+    if(not problem->isGraphCyclic() and Parameters::getPreprocessingIntensity() != PREPROCESSING_OFF){
+        collector.startGlobalTime();
+        termination = preprocessing();
+        collector.stopGlobalTime();
+        if(termination) {
+            collectSolution(best_solution_id);
+            collectData();
+        }
+    }
+
+    initAlgorithm();
+
     while(not termination) {
         collector.startGlobalTime();
         resetIteration();
@@ -119,11 +180,15 @@ void PWDefault::solve(){
             fw.join();
             bw.join();
         }
-        else labeling();
+        else if (search_direction == SEARCH_FORWARD) labeling(true, false);
+        else if (search_direction == SEARCH_BACKWARD) labeling(false, true);
+        else labeling(true, true);
+
+
         collector.stopTime("t_labeling");
 
         //If bidirectional search is over, join labels
-        if (bidirectional) {
+        if (not timeout and bidirectional) {
             label_manager->update_split();                              //Dynamic critical resource budget update
 
             //Join procedure
@@ -139,23 +204,25 @@ void PWDefault::solve(){
         //Check Termination
         termination = checkTermination();
 
+        if(termination and requested_solutions > 1)
+            manageAdditionalPaths();
+
         collector.stopGlobalTime();
+
+        if (timeout) setStatus(ALGO_TIMELIMIT);
+        else if(termination) setStatus(ALGO_DONE);
         collectData();
     }
 
-    if(Parameters::getVerbosity() >= 3)
-        std::cout<<"Solving complete"<<std::endl;
-
-    if(algo_status == ALGO_OPTIMIZING)
-        setStatus(ALGO_DONE);
-
-    collector.print();
 }
 
 
 void PWDefault::labeling(bool forward, bool backward) {
     //If candidates are available
     while(label_manager->candidatesAvailable(forward, backward)) {
+        if(isTimeLimitReached()) return;
+
+
         //Get candidate label from label manager
         LabelAdv *candidate = label_manager->getCandidate(forward, backward);
 
@@ -187,6 +254,7 @@ void PWDefault::labeling(bool forward, bool backward) {
 void PWDefault::extend(LabelAdv* candidate) {
     LabelAdv new_label = LabelAdv();
     int node = candidate->getNode();
+    bool direction = candidate->getDirection();
     bool active;
 
     std::vector<int> neighbors = (candidate->getExtensionTarget() == ALL)
@@ -195,14 +263,21 @@ void PWDefault::extend(LabelAdv* candidate) {
 
     for(auto & neigh: neighbors) {
 
-        active = not unreachable_active.empty() and unreachable_active[node].get(neigh);
+        //Only extends towards active nodes
+        if(not problem->isActiveNode(neigh))
+            continue;
 
+        //No coming back to origin (forward) or destination (backward)
+        if((direction and neigh == problem->getOrigin()) or (not direction and neigh == problem->getDestination()))
+            continue;
+
+        //Eliminates k = 2 cycles
+        if(two_cycle_elimination and candidate->getPredecessorNode() == neigh)
+            continue;
+
+        active = not unreachable_active.empty() and unreachable_active[node].get(neigh);
         if((active and label_manager->isNodeReachable(candidate, neigh)) or
            (not active and label_manager->isExtensionFeasible(candidate, neigh))){
-
-            //Eliminates k = 2 cycles
-            if(candidate->getPredecessor() and candidate->getPredecessor()->getNode() == neigh)
-                continue;
 
             //critical res extension check
             if(bidirectional and not label_manager->isCriticalExtensionFeasible(candidate, neigh))
@@ -217,11 +292,10 @@ void PWDefault::extend(LabelAdv* candidate) {
                 new_label.updateUnreachables(unreachable_active[neigh]);
 
             if(Parameters::getCollectionLevel()>=1)
-                collector.startTime(candidate->getDirection() ? T_INS_FW : T_INS_BW);
+                collector.startTime(direction ? T_INS_FW : T_INS_BW);
             label_manager->insert(&new_label);
             if(Parameters::getCollectionLevel()>=1)
-                collector.stopTime(candidate->getDirection() ? T_INS_FW : T_INS_BW);
-            candidate->getDirection() ? ins_attempts_fw++ : ins_attempts_bw++;
+                collector.stopTime(direction ? T_INS_FW : T_INS_BW);
         }
     }
 }
@@ -258,7 +332,11 @@ bool PWDefault::checkTermination() {
         return termination;
     }
 
-    //Condition 4: NG solution found (if DSSR is OFF)
+    //Condition 4: Non-elementary super optimal solution found
+    if (algo_type == ALGO_RELAXATION and not use_visited)
+        return termination;
+
+    //Condition 5: NG solution found (if DSSR is OFF)
     if(ng == NG_RESTRICTED) {
         termination = NgRestricted();
         ng_compliant = termination;
@@ -274,17 +352,15 @@ bool PWDefault::checkTermination() {
     //Reset for next iteration
     if(not termination) {
         label_manager->resetLM();
-        solutions.clear();
+        clearSolutions();
     }
 
     return termination;
 }
 
 void PWDefault::managePaths(){
-    if(timelimit > EPS and collector.getGlobalTime() > timelimit) {
-        setStatus(ALGO_TIMELIMIT);
-        timeout = true;
-    }
+    isTimeLimitReached();
+
     auto solution_data = label_manager->getSolutionLabels();
 
     int objective = std::get<0>(solution_data);
@@ -299,18 +375,67 @@ void PWDefault::managePaths(){
 
     if(bestPath->isElementary()){
         problem->setStatus(PROBLEM_FEASIBLE);
-        if(algo_type == ALGO_EXACT and not timeout)
+        if((algo_type == ALGO_EXACT or algo_type == ALGO_RELAXATION) and not timeout)
             bestPath->setStatus(PATH_OPTIMAL);
         else
             bestPath->setStatus(PATH_FEASIBLE);
     }
-    else
-        bestPath->setStatus(PATH_SUPEROPTIMAL);
-
+    else if (ng != NG_OFF and isNGCompliant(*bestPath)) bestPath->setStatus(PATH_NG);
+    else bestPath->setStatus(PATH_SUPEROPTIMAL);
 
     std::list<LabelAdv> tourFW = label_manager->buildTour(bestPath->getTour(), true);
     bestPath->setConsumption(tourFW.back().getSnapshot());
     collectSolution(best_solution_id);
+}
+
+void PWDefault::manageAdditionalPaths(){
+    int additional_solutions_found = 0;
+
+    auto buildAdditionalPaths = [&](int cost, LabelAdv* fw, LabelAdv* bw) {
+        buildPath(cost, fw, bw);
+        auto& path = solutions.back();
+
+        bool valid = path.isElementary();
+
+        if(valid and getBestSolution()->getStatus() == PATH_OPTIMAL and getBestSolution()->getObjective() == path.getObjective())
+            path.setStatus(PATH_OPTIMAL);
+        else if(valid) path.setStatus(PATH_FEASIBLE);
+
+        if(not valid and ng != NG_OFF) {
+            valid = isNGCompliant(path);
+            if(valid) path.setStatus(PATH_NG);
+        }
+
+        if(not valid) { solutions.resize(solutions.size() - 1); return; }
+
+        std::list<LabelAdv> tourFW = label_manager->buildTour(path.getTour(), true);
+        path.setConsumption(tourFW.back().getSnapshot());
+        collectSolution(solutions.size() - 1);
+        additional_solutions_found++;
+    };
+
+    if(bidirectional) {
+        if(not label_manager->joinFound()) return;
+        bool first_sol = true;
+        for(auto& [cost, fw, bw]: label_manager->getAllJoin()) {
+            if(first_sol) { first_sol = false; continue; }
+            if(additional_solutions_found >= requested_solutions - 1) break;
+            buildAdditionalPaths(cost, fw, bw);
+        }
+    } else {
+        bool is_forward = (search_direction != SEARCH_BACKWARD);
+        int target = is_forward ? problem->getDestination() : problem->getOrigin();
+        LabelAdv* best_od = label_manager->getODLabel();
+        label_manager->sortClosedLabels(is_forward, target);
+        for(auto& [cost, idx]: label_manager->getClosedLabels(is_forward, target)) {
+            if(additional_solutions_found >= requested_solutions - 1) break;
+            LabelAdv* label = label_manager->getLabel(is_forward, idx);
+            if(label == best_od) { best_od = nullptr; continue; }   // skip the label already used by managePaths
+            LabelAdv* fw = is_forward ? label : nullptr;
+            LabelAdv* bw = is_forward ? nullptr : label;
+            buildAdditionalPaths(cost, fw, bw);
+        }
+    }
 }
 
 /** Relaxation management **/
@@ -332,7 +457,7 @@ bool PWDefault::DssrStandard(){
 
     //update unreachables
     int u_count;
-    if(!isElementary) {
+    if(not isElementary) {
         for(auto & u: unreachable_active) {
             u |= repeated_visits;
             u_count = u.count();
@@ -386,31 +511,47 @@ bool PWDefault::DssrRestricted(){
 }
 
 void PWDefault::buildNG(){
-    if(ng_size <= 1) return;
-
     ng_compliant = true;
-    auto objective = problem->getObj();
+    int n = problem->getNumNodes();
+    unreachable_ng.resize(n, Bitset(n));
 
-    unreachable_ng.resize(problem->getNumNodes(), Bitset(problem->getNumNodes()));
-    std::set<std::pair<int, int>> neighbors;
-
-    //Arc-cost based ordering (should take into account extension instead)
-    int neighborhood_max_size = ng_size - 1; //To account for node i in the set
-    for(int i = 0; i < problem->getNumNodes(); i++) {
-        for(int j = 0; j < problem->getNumNodes(); j++)
-            if(problem->areNeighbors(i, j, true)) {
-                if(neighbors.size() < neighborhood_max_size)
-                    neighbors.insert(std::make_pair(objective->extend(0,i,j,true), j));
-                else if(objective->extend(0,i,j,true) < neighbors.rbegin()->first) {
-                        neighbors.erase(std::prev(neighbors.end()));
-                        neighbors.insert(std::make_pair(objective->extend(0,i,j,true), j));
-                }
+    if(not ng_set_path.empty()) {
+        std::ifstream f(ng_set_path);
+        std::string line, token;
+        for(int i = 0; i < n; i++) {
+            std::getline(f, line);
+            std::istringstream ss(line);
+            for(int j = 0; j < n; j++) {
+                std::getline(ss, token, ',');
+                if(std::stoi(token)) unreachable_ng[i].set(j);
             }
+        }
+    } 
+    else {
+        if(ng_size <= 1) return;
 
-        for(auto & n: neighbors)
-            unreachable_ng[i].set(n.second);
-        unreachable_ng[i].set(i);
-        neighbors.clear();
+        auto objective = problem->getObj();
+        std::set<std::pair<int, int>> ng_neighbors;
+
+        int neighborhood_max_size = ng_size - 1; //To account for node i in the set
+        for(int i = 0; i < n; i++) {
+            for(int j = 0; j < n; j++)
+                if(problem->areNeighbors(i, j, true)) {
+                    int extension_cost = objective->extend(0,i,j,true);
+                    if(ng_neighbors.size() < neighborhood_max_size)
+                        ng_neighbors.insert(std::make_pair(extension_cost, j));
+                    else if(extension_cost < ng_neighbors.rbegin()->first) {
+                            ng_neighbors.erase(std::prev(ng_neighbors.end()));
+                            ng_neighbors.insert(std::make_pair(extension_cost, j));
+                    }
+                }
+
+            for(auto & nb: ng_neighbors)
+                unreachable_ng[i].set(nb.second);
+            unreachable_ng[i].set(i);
+
+            ng_neighbors.clear();
+        }
     }
 
     if(ng == NG_STANDARD) {
@@ -452,6 +593,18 @@ bool PWDefault::NgRestricted() {
     return isNG;
 }
 
+bool PWDefault::isNGCompliant(Path& path) {
+    // For each arc (i, j): the extension is forbidden if j is in the current memory.
+    // After visiting i: memory = (memory ∩ NG(i)) ∪ {i}.
+    Bitset memory(problem->getNumNodes());
+    for(auto node: path.getTour()) {
+        if(memory.get(node)) return false;
+        memory &= unreachable_ng[node];
+        memory.set(node);
+    }
+    return true;
+}
+
 std::string PWDefault::getRelaxationName() {
     std::string ng_name, dssr_name, relaxation_name;
 
@@ -466,7 +619,7 @@ std::string PWDefault::getRelaxationName() {
     }
 
     relaxation_name = ng_name;
-    if(!relaxation_name.empty() and !dssr_name.empty())
+    if(not relaxation_name.empty() and not dssr_name.empty())
         relaxation_name += " + ";
     relaxation_name += dssr_name;
 
@@ -519,11 +672,9 @@ void PWDefault::initDataCollection() {
         collector.initTime("t_ins_bw");
     }
     collector.initTime("t_join");
-
+    collector.init("use_visited", -1);
     collector.init("it_ext_fw", 0);
     collector.init("it_ext_bw", 0);
-    collector.init("ins_attempts_fw", 0);
-    collector.init("ins_attempts_bw", 0);
     collector.init("relaxation", getRelaxationName());
     collector.init("neighbourhood_max_size", unreachable_max_count);
 
@@ -539,11 +690,10 @@ void PWDefault::collectData(){
     if(not Parameters::isCollecting())
         return;
 
+    collector.collect("use_visited", use_visited);
     collector.collect("iterations", iterations);
     collector.collect("it_ext_fw", it_ext_fw);
     collector.collect("it_ext_bw", it_ext_bw);
-    collector.collect("ins_attempts_fw", ins_attempts_fw);
-    collector.collect("ins_attempts_bw", ins_attempts_bw);
     collector.collect("lb", lower_bound);
     collector.collect("ub", incumbent);
     collector.collect("algo_status", algo_status);

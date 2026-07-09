@@ -1,4 +1,5 @@
 #include "data_collector.h"
+#include "utils/logger.h"
 
 /** Data Collector Management **/
 
@@ -255,10 +256,8 @@ void DataCollector::setHeader(){
         header += t + ",";
 
     //Manage and save header end
-    if(header != "") {
-        header.resize(header.size() - 1);
-        header += "\n";
-    }
+    if(header != "")
+        header += "record_marked\n";
 }
 
 void DataCollector::saveRecord() {
@@ -275,13 +274,8 @@ void DataCollector::saveRecord() {
     for(auto & d: decimals)
         r += std::to_string(d) + ",";
 
-    //Manage and save record
-    if(r != ""){
-        r.resize(r.size() - 1);       //removes the last ","
-        r += "\n";                       //adds endline
-        records.push_back(r);
-    }
-
+    records.push_back(r);
+    records_mark.push_back(false);
 }
 
 void DataCollector::writeData() {
@@ -298,45 +292,35 @@ void DataCollector::writeData() {
     std::ofstream f;
     f.open(output_path.c_str(), std::ios_base::app);
     if(write_header) f << header;
-    for (auto &r: records) f << r;
+    for(int r = 0; r < records.size(); r++)
+        f << records[r] << records_mark[r] << "\n";
     f.close();
 }
 
 
 void DataCollector::print(){
-    if(not Parameters::isCollecting() or Parameters::getVerbosity() < 3)
+    if(not Parameters::isCollecting() or Parameters::getVerbosity() != VERB_DATA)
         return;
 
-    std::cout<<"-------Printing collection-------"<<std::endl;
-    std::cout<<"Collection: " << name << std::endl;
-    std::string line;
-    for(int i = 0; i < tag_text.size(); i++){
-        line = tag_text[i] + ": " + text[i];
-        std::cout<<line<<std::endl;
-    }
+    Logger::log("[ Data Collection ]", VERB_DATA, BOLD);
+    Logger::log("Collection", name);
+
+    for(int i = 0; i < tag_text.size(); i++)
+        Logger::log(tag_text[i], text[i]);
 
     for(int i = 0; i < tag_times.size(); i++){
-
-        line = tag_times[i] + ": " + std::to_string(times[i]);
-        std::cout<<line<<std::endl;
-        if(i > 0)
-            line = tag_times[i] + "_cumulative: " + std::to_string(times_cumulative[i]);
-        else
-            line = "Global_time: " + std::to_string(times_cumulative[i]);
-        std::cout<<line<<std::endl;
+        Logger::log(tag_times[i], std::to_string(times[i]));
+        if (i > 0) Logger::log(tag_times[i] + "_cumul.", std::to_string(times_cumulative[i]));
+        else Logger::log("Global_time", std::to_string(times_cumulative[i]));
     }
 
-    for(int i = 0; i < tag_integers.size(); i++){
-        line = tag_integers[i] + ": " + std::to_string(integers[i]);
-        std::cout<<line<<std::endl;
-    }
+    for(int i = 0; i < tag_integers.size(); i++)
+        Logger::log(tag_integers[i], std::to_string(integers[i]));
 
-    for(int i = 0; i < tag_decimals.size(); i++){
-        line = tag_decimals[i] + ": " + std::to_string(decimals[i]);
-        std::cout<<line<<std::endl;
-    }
+    for(int i = 0; i < tag_decimals.size(); i++)
+        Logger::log(tag_decimals[i], std::to_string(decimals[i]));
 
-    std::cout<<"--------------------"<<std::endl;
+    Logger::divider();
 }
 
 void DataCollector::print(std::vector<std::string> tags){
@@ -344,37 +328,35 @@ void DataCollector::print(std::vector<std::string> tags){
         return;
 
     std::string value;
-    int type;
 
     for(auto & t: tags) {
 
         if(t == "Global_time") {
-            std::cout<<"Global_time: " << getGlobalTime() <<std::endl;
+            Logger::log("Global_time", std::to_string(getGlobalTime()));
             continue;
         }
 
-        std::cout<<t + ": ";
         auto pos = dict.find(t);
-
         if(pos != dict.end()) {
             int type = pos->second.first;
             int index = pos->second.second;
 
             switch(type) {
                 case INTEGER:
-                    std::cout<<getInt(index);
+                    value = std::to_string(getInt(index));
                     break;
                 case DECIMALS:
-                    std::cout<<getDecimal(index);
+                    value = std::to_string(getDecimal(index));
                     break;
                 case TIME:
-                    std::cout<<getTime(index)<<std::endl;
-                    std::cout<<t + "_cumulative: " << getTimeCumulative(index);
+                    value = std::to_string(getTime(index));
+                    Logger::log(t + "_cumulative", std::to_string(getTimeCumulative(index)));
                     break;
                 default:
-                    std::cout<<getText(index);
+                    value = getText(index);
                     break;
             }
+            Logger::log(t, value);
         }
 
         std::cout<<std::endl;
@@ -432,6 +414,8 @@ void DataCollector::clear() {
     tag_times.clear();
     tag_integers.clear();
     tag_decimals.clear();
+
+    clearRecords();
 }
 
 /** Direct access to Data **/

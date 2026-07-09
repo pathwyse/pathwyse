@@ -85,7 +85,7 @@ public:
     void resetIntegers(){ std::fill(integers.begin(), integers.end(), 0);}
     void resetDecimals(){std::fill(decimals.begin(), decimals.end(), 0);}
 
-    void clearRecords() {records.clear();}
+    void clearRecords() {records.clear(); records_mark.clear(); clearSubsetRecords();}
     void clear();
 
     /** Direct access to Data **/
@@ -114,6 +114,42 @@ public:
     void incrementDecimal(int id, double value) {decimals[id] += value;}
     double getDecimal(int id) {return decimals[id];}
     void resetDecimal(int id) {decimals[id] = 0;}
+
+    //Records
+    void setRecord(unsigned long long id, std::string record){records[id] = record;}
+    void addRecord(std::string record){records.emplace_back(record); records_mark.emplace_back(false);}
+
+    std::string getRecord(unsigned long long id){return records[id];}
+    std::string getLastRecord(){return records.back();}
+
+    void markRecord(unsigned long long id, bool mark = true){records_mark[id] = mark;}
+    void markLastRecord(bool mark = true){records_mark.back() = mark;}
+
+    bool getRecordMark(unsigned long long id){return records_mark[id];}
+    bool getLastRecordMark(){return records_mark.back();}
+
+    void addLastRecordToSubset(){records_subset.emplace_back(records.size()-1);}
+    void markSubsetRecord(unsigned long long s, bool mark = true) {const unsigned long long id = records_subset[s]; records_mark[id] = mark;}
+
+    std::vector<unsigned long long> * getSubsetRecords(){return &records_subset;}
+
+    void resetRecordMarks(){std::fill(records_mark.begin(), records_mark.end(), false);}
+    void clearSubsetRecords(){records_subset.clear();}
+
+    //Helper functions
+    template<typename Fn>
+    void timed(const std::string& key, Fn fn) {
+        startTime(key);
+        fn();
+        stopTime(key);
+    }
+
+    template<typename Fn>
+    void timed(const int& key, Fn fn) {
+        startTime(key);
+        fn();
+        stopTime(key);
+    }
 
 private:
 
@@ -145,7 +181,9 @@ private:
 
     //Data collection
     std::string header;
-    std::list<std::string> records;
+    std::vector<std::string> records;
+    std::vector<bool> records_mark;             //one for each record
+    std::vector<unsigned long long> records_subset;            //indices of records
 };
 
 #endif

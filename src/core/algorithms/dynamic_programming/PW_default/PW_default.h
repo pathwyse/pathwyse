@@ -1,9 +1,10 @@
-#ifndef SPPRCLIB_DP_BIDIRECTIONAL_H
-#define SPPRCLIB_DP_BIDIRECTIONAL_H
+#ifndef PW_DEFAULT_H
+#define PW_DEFAULT_H
 
 #include "algorithms/algorithm.h"
-#include "LM_default.h"
 #include "algorithms/labels/label_advanced.h"
+#include "algorithms/preprocessing/preprocessing.h"
+#include "LM_default.h"
 
 class PWDefault: public Algorithm {
 
@@ -22,19 +23,22 @@ public:
     void resetAlgorithm(int reset_level);
 
     //Solve
+    bool preprocessing();
     void solve() override;
-    void labeling(bool forward = true, bool backward = true);
+    void labeling(bool forward, bool backward);
     void extend(LabelAdv* candidate);
     bool checkTermination();
 
     //Path building
     void managePaths();
+    void manageAdditionalPaths();
 
     /** Relaxation management **/
     void buildNG();            //build NG sets
     bool DssrStandard();                //DSSR
     bool DssrRestricted();     //iteratively DSSR forbid only repeating customers in cycles
     bool NgRestricted();       //iteratively forbid only cycles that are not part of an NG route
+    bool isNGCompliant(Path& path);
     std::string getRelaxationName();
 
     /** Debug **/
@@ -47,15 +51,21 @@ public:
 
 protected:
 
+    //Preprocessing (for acyclic graph)
+    Preprocessing* preprocess;
+
     //Label Manager
     LMDefault* label_manager;
 
     //Parameters (Configuration)
-    float timelimit;            //timelimit (s)
+    int search_direction;
     bool use_visited;           //check
+    bool two_cycle_elimination;
+    int requested_solutions;
     int dssr;                   //DSSR mode
     int ng;                     //NG mode
     int ng_size;
+    std::string ng_set_path;
     bool earlyjoin;
     unsigned long long int earlyjoin_step;
 
@@ -65,8 +75,8 @@ protected:
 
     //Parameters (Data collection)
     int unreachable_max_count, previous_unreachable_max_count;
-    bool timeout, ng_compliant;
-    int it_ext_fw, it_ext_bw, ins_attempts_fw, ins_attempts_bw;
+    bool ng_compliant;
+    int it_ext_fw, it_ext_bw;
 };
 
-#endif //SPPRCLIB_DP_BIDIRECTIONAL_H
+#endif

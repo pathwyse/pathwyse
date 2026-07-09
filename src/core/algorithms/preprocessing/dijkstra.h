@@ -19,7 +19,7 @@ public:
     void solve() override;
     void extendLabel(Label* current_label, Label & new_label, int next_node);
     bool isLabelValid(Label* l, int cost);
-    bool isCriticalLabelValid(Label* l, int cost);
+    bool isCriticalLabelValid(Label* l);
     void checkFeasibility();
     void checkOptimality();
 
@@ -51,10 +51,12 @@ private:
     double bounding;                //Resource split
     int res_id;
     int found_optimal;
+    int coord_distance_algo;
 
     //Resource and completion labels pointers
     Resource* obj;
-    Resource* res;
+    Resource* critical_res;
+    std::vector<Resource*> resources;
     BoundLabels* bound_labels;
 
     //Solution information

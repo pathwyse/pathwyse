@@ -3,6 +3,7 @@
 
 #include "algorithms/labels/label.h"
 #include "data/problem.h"
+#include <algorithm>
 
 //Bucket based Label Manager for PW_acyclic.
 

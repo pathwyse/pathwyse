@@ -1,0 +1,73 @@
+site_name: PathWyse
+site_description: A C++ and Python framework to model and solve Resource Constrained Shortest Path Problems.
+site_url: https://pathwyse.github.io/pathwyse/
+repo_url: https://github.com/pathwyse/pathwyse
+repo_name: pathwyse
+
+theme:
+  name: material
+  palette:
+    - scheme: slate
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+    - scheme: default
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+  features:
+    - navigation.tabs
+    - navigation.sections
+    - navigation.top
+    - search.highlight
+    - content.code.copy
+
+markdown_extensions:
+  - md_in_html
+  - admonition
+  - pymdownx.details
+  - pymdownx.tabbed:
+      alternate_style: true
+  - pymdownx.arithmatex:
+      generic: true
+  - pymdownx.highlight:
+      anchor_linenums: true
+  - pymdownx.superfences
+  - pymdownx.inlinehilite
+  - attr_list
+
+extra_javascript:
+  - javascripts/mathjax.js
+  - https://unpkg.com/mathjax@3/es5/tex-mml-chtml.js
+
+nav:
+  - Home: index.md
+  - Documentation:
+    - Installation: documentation/INSTALL.md
+    - Instance Format: documentation/INSTANCE.md
+    - Architecture: documentation/architecture.md
+    - Parameters: documentation/PARAMETERS_TABLE.md
+    - Extras: documentation/EXTRAS.md
+    - Publications: documentation/publications.md
+  - C++ API:
+    - Solver:
+      - Overview: cpp/CPP_INTERFACES_FULL.md
+      - Problem: cpp/CPP_INTERFACES_PROBLEM.md
+      - Algorithms: cpp/CPP_INTERFACES_ALGORITHMS.md
+      - Solutions: cpp/CPP_INTERFACES_SOLUTIONS.md
+      - Query: cpp/CPP_INTERFACES_QUERY.md
+  - Python API:
+    - Getting Started: python/PYTHON.md
+    - Examples:
+      - From instance file: python/PYTHON_EXAMPLE_FILE.md
+      - From scratch: python/PYTHON_EXAMPLE_CREATE.md
+    - Interface Reference:
+      - Overview: python/PYTHON_INTERFACES_FULL.md
+      - Problem: python/INTERFACES_PROBLEM.md
+      - Algorithms: python/INTERFACES_ALGORITHMS.md
+      - Solutions: python/INTERFACES_SOLUTIONS.md
+      - Query: python/INTERFACES_QUERY.md
+  - Tutorials:
+    - Capacitated Vehicle Routing Problem (CVRP):
+      - Overview & Python: tutorials/CVRP_CG.md
+      - C++ implementation: tutorials/CVRP_CG_CPP.md

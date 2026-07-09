@@ -2,6 +2,7 @@
 #define RESOURCE_H
 
 #include <iostream>
+#include <limits>
 #include "data/resource_data.h"
 #include "utils/constants.h"
 
@@ -15,6 +16,9 @@ public:
         init_value = 0;
         lower_bound = INFMINUS;
         upper_bound = INFPLUS;
+        bucket_compatible = true;
+        lower_bound_d = INFMINUSDOUBLE;
+        upper_bound_d = INFPLUSDOUBLE;
     };
 
     virtual ~Resource() {delete data;}
@@ -22,24 +26,23 @@ public:
     //General info
     void setName(std::string name) {this->name = name;}
     std::string getName(){return name;}
+    bool isBucketCompatible(){return bucket_compatible;}
 
     //Starting value
     int getInitValue(){return init_value;}
-    void setInitValue(int init_value){this->init_value = init_value;}
-    void increaseInitValue(int delta){init_value += delta;}
-    void multiplyInitValue(float factor){init_value *= factor;}
 
     /** Bounds **/
     //Global bounds
-    void setBounds(int lower_bound, int upper_bound){this->lower_bound = lower_bound; this->upper_bound = upper_bound;}
+    void setBounds(int lb, int ub){lower_bound = lb; upper_bound = ub;}
+    void setBoundsDouble(double lb, double ub){lower_bound_d = lb; upper_bound_d = ub;}
     void setLB(int lower_bound){this->lower_bound = lower_bound;}
     void setUB(int upper_bound){this->upper_bound = upper_bound;}
-    void increaseUB(int delta) {upper_bound += delta;}
-    void increaseLB(int delta) {lower_bound += delta;}
-    void multiplyUB(float factor) {upper_bound *= factor;}
-    void multiplyLB(float factor) {lower_bound *= factor;}
+    void setLBDouble(double v){lower_bound_d = v;}
+    void setUBDouble(double v){upper_bound_d = v;}
     int getLB(){return lower_bound;}
     int getUB(){return upper_bound;}
+    double getLBDouble(){return lower_bound_d;}
+    double getUBDouble(){return upper_bound_d;}
 
     //Node bounds
     void setNodeBounds(std::vector<int> node_lower_bound, std::vector<int> node_upper_bound) {
@@ -76,18 +79,24 @@ public:
     std::vector<int> & getNodesLB(){return node_lower_bound;}
     std::vector<int> & getNodesUB(){return node_upper_bound;}
 
-    /** Scaling **/
-    void scaleResource(float scaling){
-        multiplyInitValue(scaling);
-        multiplyUB(scaling);
-        multiplyLB(scaling);
-
-        for(int i = 0; i < node_lower_bound.size(); i++)
-            multiplyNodeCost(i, scaling);
-
-        data->scaleData(scaling);
+    /** Double representation **/
+    void setArcCostDouble(int i, int j, double cost) { data->setArcCostDouble(i, j, cost); }
+    double getArcCostDouble(int i, int j) { return data->getArcCostDouble(i, j); }
+    void setNodeCostDouble(int id, double cost) { data->setNodeCostDouble(id, cost); }
+    double getNodeCostDouble(int id) { return data->getNodeCostDouble(id); }
+    std::vector<double> getNodeCostsDouble() { return data->getNodeCostsDouble(); }
+    double getMaxAbsValue() {
+        double max = data->getMaxAbsValue();
+        if (std::isfinite(lower_bound_d)) max = std::max(max, std::abs(lower_bound_d));
+        if (std::isfinite(upper_bound_d)) max = std::max(max, std::abs(upper_bound_d));
+        return max;
     }
-    
+    void applyScale(double scale) {
+        data->applyScale(scale);
+        if (std::isfinite(lower_bound_d)) lower_bound = (int)(lower_bound_d * scale);
+        if (std::isfinite(upper_bound_d)) upper_bound = (int)(upper_bound_d * scale);
+    }
+
     /** Resource data structure management **/
     void initData(bool compress_data = false, int n_nodes = 1) {compress_data ? data = new ResourceDataMap(n_nodes): data = new ResourceDataMatrix(n_nodes);}
     void setData(ResourceData* data) {this->data = data;}
@@ -95,14 +104,11 @@ public:
 
     int getArcCost(int i, int j) {return data->getArcCost(i,j);}
     void setArcCost(int i, int j, int cost) {data->setArcCost(i,j, cost);}
-    void increaseArcCost(int i, int j, int delta) {data->increaseArcCost(i, j, delta);}
-    void multiplyArcCost(int i, int j, float factor) {data->multiplyArcCost(i, j, factor);}
 
     int getNodeCost(int i) {return data->getNodeCost(i);}
+    std::vector<int> getNodeCosts() {return data->getNodeCosts();}
     void setNodeCost(int i, int cost) { data->setNodeCost(i, cost);}
     void setNodeCosts(std::vector<int> costs) { data->setNodeCosts(costs);}
-    void increaseNodeCost(int i, int delta){data->increaseNodeCost(i, delta);}
-    void multiplyNodeCost(int i, float factor){data->multiplyNodeCost(i, factor);}
 
     /** Resource behaviour definition **/
 
@@ -117,8 +123,9 @@ protected:
     std::string name;
 
     int init_value;
-
+    bool bucket_compatible;
     int lower_bound, upper_bound;
+    double lower_bound_d, upper_bound_d;
     std::vector<int> node_lower_bound, node_upper_bound;
 
     ResourceData* data;

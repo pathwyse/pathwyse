@@ -249,6 +249,8 @@ public:
         return not any();
     }
 
+    friend bool is_subset(const Bitset& a, const Bitset& b);
+
 private:
     buffer_type m_bitset;
     std::size_t m_num_bits;

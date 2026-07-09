@@ -1,5 +1,5 @@
-#ifndef LABELMANAGER_H
-#define LABELMANAGER_H
+#ifndef LM_DEFAULT_H
+#define LM_DEFAULT_H
 
 #include <set>
 #include "algorithms/labels/label_advanced.h"
@@ -14,7 +14,7 @@ public:
 
     /** LM management **/
     //Constructors and destructors
-    LMDefault(Problem* problem);
+    explicit LMDefault(Problem* problem);
     ~LMDefault() = default;
 
     //Initialization
@@ -28,6 +28,8 @@ public:
     void setProblem(Problem* problem) {this->problem = problem;}
     void setUseVisited(bool use_visited) {this->use_visited = use_visited;}
     void setCompareUnreachables(bool compare_unreachables) {this->compare_unreachables = compare_unreachables;}
+    int getUseVisited(){return use_visited;}
+    int getCompareUnreachables(){return compare_unreachables;}
 
     //Bidirectional budget management
     void update_split();
@@ -62,7 +64,7 @@ public:
 
     //Label insertion
     LabelAdv* insert(LabelAdv *new_label);
-    bool dominates (LabelAdv *l1, LabelAdv *l2);
+    bool dominates(LabelAdv *l1, LabelAdv *l2);
 
     /** Join **/
     void join();
@@ -71,7 +73,18 @@ public:
     void naiveJoin();
     void classicJoin();
     void orderedJoin();
+    void orderedNodeJoin();
+    void ksol_orderedJoin();
+    void ksol_orderedNodeJoin();
+    void paretoArcJoin();
+    void paretoNodeJoin();
     bool isJoinFeasible(LabelAdv* forward, LabelAdv* backward);                 //Checks if two labels can be joined
+    bool isNodeJoinFeasible(LabelAdv* forward, LabelAdv* backward);             //Checks if two labels can be joined
+
+    void paretoSearchBlock(Resource* objective, int node_fw, int node_bw,
+                           std::vector<std::pair<int, int>>& rows,
+                           std::vector<std::pair<int, int>>& cols,
+                           int start_row, int end_row, int start_col, int end_col);
     bool joinFound() {return not joinable_labels.empty();}                      //Checks if a join was found
 
     std::tuple<int, LabelAdv*, LabelAdv*> getBestJoin() {return *joinable_labels.begin();}       //returns best join
@@ -81,6 +94,8 @@ public:
     std::tuple<int, LabelAdv*, LabelAdv*> getSolutionLabels();
     void setODLabel();
     LabelAdv* getODLabel(){return (od_label.second >= 0) ? getLabel(od_label.first, od_label.second) : nullptr;}
+    void sortClosedLabels(bool direction, int node);
+    const std::vector<std::pair<int, int>>& getClosedLabels(bool direction, int node);
 
     /** Heuristic management **/
     void setQueueLimit(int queue_limit){if(queue_limit > 0) this->queue_limit = queue_limit;}
@@ -94,14 +109,17 @@ public:
 
     /** Data collection management **/
     void initDataCollection();
+    void initLabelDataCollection(DataCollector* collector_label);
     void setExecutionID(int id){executionID = id;}
     void setIteration(int iterations){this->iterations = iterations;}
     float getMeanLabels(bool direction);
     int getMaxLabels(bool direction);
     float getVarLabels(bool direction, float mean);
-    float getJoinComparisons(){return joinComparisons;}
+    unsigned long long getJoinComparisons(){return joinComparisons;}
     void collectData();
-    void writeData() {collector.writeData();}
+    void collectLabel(DataCollector* collector_label, LabelAdv *l);
+    void writeData() {collector.writeData();  collector_label_fw.writeData(); collector_label_bw.writeData();}
+
 
 protected:
 
@@ -113,17 +131,21 @@ protected:
 
     //Parameters
     bool bidirectional;
+    int search_direction;
     bool autoconfiguration;
 
     int candidate_type;
     int join_type;
+    int join_algo;
 
     int queue_limit;
     int reserve_size;
+    int requested_solutions;
     int turn_forward, turn_backward;
     double split_ratio;
     int incumbent;
     bool use_visited, compare_unreachables;
+    bool two_cycle_elimination;
 
     int ndominated_fw, ndominated_bw;
     int nclosed_fw, nclosed_bw;
@@ -139,7 +161,6 @@ protected:
     std::vector<std::list<std::pair<int, int>>> forward_candidates, backward_candidates;            //Open labels
     LabelAdv *best_fw, *best_bw;                                                                    //Best overall labels
     std::vector<LabelAdv*> forward_best, backward_best;                                             //Best overall LabelAdv for each node
-    std::multiset<std::pair<int, int>> forward_top_candidates, backward_top_candidates;             //Best available candidates, ordered
 
     //Closed labels
     std::vector<std::vector<std::pair<int, int>>> forward_closed, backward_closed;                      //Closed labels
@@ -150,8 +171,10 @@ protected:
     //Data collection
     int executionID;
     int iterations;
+    int ins_attempts_fw, ins_attempts_bw;
     unsigned long long joinComparisons;
     DataCollector collector;
+    DataCollector collector_label_fw, collector_label_bw;
 };
 
 #endif

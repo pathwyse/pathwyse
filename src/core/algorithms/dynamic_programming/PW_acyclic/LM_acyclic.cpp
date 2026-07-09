@@ -42,7 +42,7 @@ void LMacyclic::initLM() {
     //Creates first Backward label
     Label* destinationLabel = new Label();
     destinationLabel->initLabel(destination, predecessor, false, n_res);
-    destinationLabel->setObjective(obj->getNodeCost(destination));
+    destinationLabel->setObjective(obj->getInitValue() + obj->getNodeCost(destination));
     destinationLabel->setSnapshot(RES_CRITICAL, res->getInitValue() + res->getNodeCost(destination));
 
     //Add labels ids to buckets
@@ -228,7 +228,7 @@ bool LMacyclic::insert(Label& candidate) {
     if(value > incumbent)
         return false;
 
-    if(res_label_opp->isValid())
+    if(res_label_opp->isObjectiveSet())
         if(not res->isFeasible(candidate.getSnapshot(RES_CRITICAL) + res_label_opp->getSnapshot(RES_CRITICAL)))
             return false;
 
@@ -285,7 +285,7 @@ bool LMacyclic::earlyUpdate(Label *candidate) {
     }
 
     auto res_label_opp = bound_labels->getLabel(RES_CRITICAL, not direction, node);
-    if(not res_label_opp->isValid())
+    if(not res_label_opp->isObjectiveSet())
         return false;
 
     value = candidate->getObjective() + res_label_opp->getObjective();
@@ -308,7 +308,7 @@ void LMacyclic::join(Label* current) {
 
     double bounding_opp = direction ? 1 - split_ratio : split_ratio;
     Label* res_label_opp = bound_labels->getLabel(RES_CRITICAL, not direction, node);
-    if(res_label_opp->isValid()) {
+    if(res_label_opp->isObjectiveSet()) {
         int res_bound_opp = res_label_opp->getSnapshot(RES_CRITICAL);
         if(not res->isFeasible(res_bound_opp, node, bounding_opp, direction))
             return;

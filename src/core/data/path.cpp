@@ -1,4 +1,5 @@
 #include "path.h"
+#include "utils/logger.h"
 
 /** Path management **/
 
@@ -35,7 +36,7 @@ std::string Path::getTourAsString() {
 }
 
 void Path::setTour(std::list<int> tour) {
-    this->tour = tour;
+    this->tour = std::move(tour);
     elementary = checkElementarity();
 }
 
@@ -56,43 +57,52 @@ bool Path::checkElementarity(){
 
 /** Output management **/
 
-void Path::printPath() {
-    if(Parameters::getVerbosity() >= 0) {
-        printStatus();
-        std::cout<<"Obj: " << objective << std::endl;
-    }
-    if(Parameters::getVerbosity() >= 1) {
-        std::cout << "Tour Length: " << tour.size() << std::endl;
-        if(Parameters::getVerbosity() >= 2){
-            std::cout << "Tour: ";
-            for(auto& t: tour)
-                std::cout << t << " ";
-            std::cout<<std::endl;
-        }
+void Path::printPath(double init_cost, double cost_scale) {
+    Logger::log("[ Solution ]", VERB_STD, BOLD);
+
+    printStatus();
+
+    Logger::log("Obj", std::to_string(init_cost + (objective / cost_scale)));
+    Logger::log("Tour Length", std::to_string(tour.size()));
+
+    //Tour
+    std::string tour_str;
+    for (auto &t : tour) tour_str += std::to_string(t) + " ";
+    Logger::log("Tour", tour_str);
+
+    //Resources
+    std::string cons_str;
+    for (auto &c : consumption) cons_str += std::to_string(c) + " ";
+    Logger::log("Consumption", cons_str);
+
+    //Labels
+    if (Parameters::getVerbosity() == VERB_DATA) {
+        for (auto &l : labels)
+            l.printLabel();
     }
 
-    if(Parameters::getVerbosity() >= 2) {
-        std::cout<<"Consumption: ";
-        for(auto& c: consumption)
-            std::cout << c << " ";
-        std::cout<<std::endl;
-    }
+    Logger::divider();
+}
 
-    if(Parameters::getVerbosity() >= 4)
-        for(auto & l: labels) l.printLabel();
+void Path::printTour(){
+    std::string tour_str;
+    for (auto &t : tour) tour_str += std::to_string(t) + " ";
+    Logger::log(tour_str);
 }
 
 void Path::printStatus() {
     std::string status;
+    const char* col = COL_RESET;
 
     switch(solution_status){
-        case PATH_UNKNOWN: status = "Unknown"; break;
-        case PATH_OPTIMAL: status = "Optimal"; break;
-        case PATH_FEASIBLE: status = "Feasible"; break;
-        case PATH_INFEASIBLE: status = "Infeasible"; break;
-        case PATH_SUPEROPTIMAL: status = "Super optimal"; break;
+        case PATH_UNKNOWN: status = "Unknown"; col = RED; break;
+        case PATH_OPTIMAL: status = "Optimal"; col = GREEN; break;
+        case PATH_FEASIBLE: status = "Feasible"; col = YELLOW; break;
+        case PATH_INFEASIBLE: status = "Infeasible"; col = RED; break;
+        case PATH_SUPEROPTIMAL: status = "Super optimal"; col = YELLOW; break;
+        case PATH_NG: status = "NG-route"; col = YELLOW; break;
         default: break;
     }
 
-    std::cout << "Solution Status: " << status <<  std::endl;
+    Logger::log("Solution Status", status, VERB_STD, col);
 }

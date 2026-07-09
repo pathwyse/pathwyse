@@ -22,10 +22,17 @@
 
 //Solution status
 #define PATH_UNKNOWN 0
-#define PATH_OPTIMAL 1
-#define PATH_FEASIBLE 2
-#define PATH_SUPEROPTIMAL 3
+#define PATH_SUPEROPTIMAL 1
+#define PATH_OPTIMAL 2
+#define PATH_FEASIBLE 3
 #define PATH_INFEASIBLE 4
+#define PATH_NG 5
+
+//Search
+#define SEARCH_BIDIRECTIONAL (-1)
+#define SEARCH_FORWARD 0
+#define SEARCH_BACKWARD 1
+
 
 /** Solution **/
 
@@ -36,8 +43,13 @@
 #define UNKNOWN std::numeric_limits<int>::max()
 #define INFPLUS std::numeric_limits<int>::max()
 #define INFMINUS std::numeric_limits<int>::min()
+#define INFPLUSDOUBLE std::numeric_limits<double>::infinity()
+#define INFMINUSDOUBLE (-std::numeric_limits<double>::infinity())
 
 /** Problem **/
+
+//Maximum total significant digits for integer cost representation
+#define MAX_COST_DIGITS 9
 
 //Resource type creation
 #define RES_CAPACITY 0
@@ -49,11 +61,16 @@
 #define RES_COST (-1)
 #define RES_CRITICAL 0
 
-//Distance type selection
+//Distance type
 #define DIST_NONE 0
-#define DIST_EUCLIDEAN 1
-#define DIST_HAVERSINE 2
-#define DIST_EQUIRECTANGULAR 3
+#define DIST_2D 1
+#define DIST_GEOGRAPHIC 2
+
+//Distance algorithm
+#define DIST_ALGO_NONE 0
+#define DIST_ALGO_EUCLIDEAN 1
+#define DIST_ALGO_HAVERSINE 2
+#define DIST_ALGO_EQUIRECTANGULAR 3
 
 //Numerical values
 #define MAX_JOIN_STEP 4294967296
@@ -67,10 +84,20 @@
 //Algorithm type
 #define ALGO_EXACT ("Exact")
 #define ALGO_HEURISTIC ("Heuristic")
+#define ALGO_RELAXATION ("Relaxation")
+
+//Preprocessing type
+#define PREPROCESSING_OFF (-1)
+#define PREPROCESSING_STANDARD 0
+#define PREPROCESSING_FULL 1
 
 //Bidirectional algorithm direction
 #define FORWARD 1
 #define BACKWARD 0
+
+//Relaxation type
+#define RELAX_GLOBAL 0 //DSSR
+#define RELAX_LOCAL 1 //All the others
 
 //Relaxation mode selection
 #define DSSR_OFF 0
@@ -80,9 +107,6 @@
 #define NG_STANDARD 1
 #define NG_RESTRICTED 2
 
-//Candidate Types
-#define CANDIDATE_RR 0
-#define CANDIDATE_NODE 1
 
 //Extension: Node Targets
 #define ALL (-1)
@@ -97,10 +121,35 @@
 //Dominated labels (cannot be discarded)
 #define DOMINATED 2
 
-//Join Types
+//Candidate Types
+#define CANDIDATE_RR 0
+#define CANDIDATE_NODE 1
+
+//Join type
+#define JOIN_ARC 0
+#define JOIN_NODE 1
+
+//Join Algo
 #define JOIN_NAIVE 0
-#define JOIN_CLASSIC 1
-#define JOIN_ORDERED 2
+#define JOIN_NAIVE_NODE 1
+#define JOIN_CLASSIC 2
+#define JOIN_CLASSIC_NODE 3
+#define JOIN_ORDERED 4
+#define JOIN_ORDERED_NODE 5
+#define JOIN_PARETO_ARC 6
+#define JOIN_PARETO_NODE 7
+#define JOIN_KORDERED 8
+#define JOIN_KORDERED_NODE 9
+
+//Insertion
+#define INSERT_OBJ 0
+#define INSERT_BITSET 1
+#define INSERT_UNORDERED 2
+
+//Extension
+#define FULL 0
+#define PROMISING 1
+#define COMPLEMENT 2
 
 /** Data collection **/
 
@@ -114,6 +163,26 @@
 #define T_INS_FW 4
 #define T_INS_BW 5
 
+//Verbosity levels
+#define VERB_SILENT 0
+#define VERB_STD 1
+#define VERB_DETAIL 2
+#define VERB_DATA 3
+#define VERB_DEBUG 4
+
+/** Interface **/
+#define RETURN_ERROR 0
+#define RETURN_OK 1
+
 /** Utilities **/
 #define EPS 10E-7
 
+/** Text **/
+#define COL_RESET  "\033[0m"
+#define BOLD   "\033[1m"
+#define DIM    "\033[2m"
+#define CYAN   "\033[36m"
+#define YELLOW "\033[33m"
+#define GREEN  "\033[32m"
+#define RED    "\033[31m"
+#define GRAY   "\033[90m"

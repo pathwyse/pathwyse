@@ -6,17 +6,13 @@
 
 /** Graph management **/
 
-void Graph::initGraph(bool compress_data, int n_nodes, bool complete) {
+void Graph::initGraph(bool compress_data, int n_nodes) {
     this->compress_data = compress_data;
     this->n_nodes = n_nodes;
-    this->complete = complete;
+    initCoord();
+    if(compress_data) arcs_map.resize(n_nodes, std::map<int, bool>());
+    else arcs.resize(n_nodes, Bitset(n_nodes));
 
-    if(not complete) {
-        if(compress_data)
-            arcs_map.resize(n_nodes, std::map<int, bool>());
-        else
-            arcs.resize(n_nodes, Bitset(n_nodes));
-    }
     forward_neighbors.resize(n_nodes, std::vector<int>());
     backward_neighbors.resize(n_nodes, std::vector<int>());
     active_nodes = Bitset(n_nodes);
@@ -25,21 +21,21 @@ void Graph::initGraph(bool compress_data, int n_nodes, bool complete) {
 
 /**  Coordinates and distances management **/
 
-int Graph::getCoordDistance(int i, int j) {
+int Graph::getCoordDistance(int i, int j, int distance_algo) {
     const float s = Parameters::getCoordScaling();
 
     const double xi = x[i]*s, yi = y[i]*s;
     const double xj = x[j]*s, yj = y[j]*s;
 
     double distance = 0;
-    switch(Parameters::getCoordDistanceType()) {
-        case DIST_EUCLIDEAN:
+    switch(distance_algo) {
+        case DIST_ALGO_EUCLIDEAN:
             distance = getEuclideanDistance(xi, xj, yi, yj);
             break;
-        case DIST_HAVERSINE:
+        case DIST_ALGO_HAVERSINE:
             distance = getHaversineDistance(xi, xj, yi, yj);
             break;
-        case DIST_EQUIRECTANGULAR:
+        case DIST_ALGO_EQUIRECTANGULAR:
             distance = getEquirectangularDistance(xi, xj, yi, yj);
             break;
         default:
@@ -78,12 +74,8 @@ double Graph::getEquirectangularDistance(double xi, double xj, double yi, double
 void Graph::setArc(int i, int j) {
     if(i == j) return;
 
-    if(not complete){
-        if(compress_data)
-            arcs_map[i].insert(std::make_pair(j, true));
-        else
-            arcs[i].set(j);
-    }
+    if(compress_data) arcs_map[i].insert(std::make_pair(j, true));
+    else arcs[i].set(j);
 
     forward_neighbors[i].push_back(j);
     backward_neighbors[j].push_back(i);
